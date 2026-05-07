@@ -1,0 +1,119 @@
+suite: turkish-bugfixes
+language: tr
+description: Turkish bugfix prompts with constraints
+
+tests:
+  - name: "Auth token refresh bug (TR)"
+    input: "kral login token refresh bozuldu başka yeri bozma"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["minimal", "targeted", "auth"]
+      - type: not_contains
+        value: ["refactor", "overhaul", "redesign"]
+      - type: intent_match
+        task_type: bugfix
+        domain: auth
+      - type: no_fences
+      - type: no_prefixes
+
+  - name: "API 500 error (TR)"
+    input: "knk api endpoint 500 dönüyor bazen timeout oluyor başka yeri elleme"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["endpoint", "timeout"]
+      - type: not_contains
+        value: ["refactor"]
+      - type: intent_match
+        task_type: bugfix
+        domain: api
+      - type: no_fences
+
+  - name: "Database migration bug (TR)"
+    input: "database migration patlıyor schema hata veriyor"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["migration", "schema"]
+      - type: intent_match
+        task_type: bugfix
+        domain: database
+      - type: no_fences
+
+  - name: "UI render bug (TR)"
+    input: "dashboard render bozuldu component gözükmüyor"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["render", "component"]
+      - type: intent_match
+        task_type: bugfix
+        domain: ui
+      - type: no_fences
+
+  - name: "Payment bug (TR)"
+    input: "ödeme çalışmıyor checkout sepet boş geliyor"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["payment", "checkout"]
+      - type: intent_match
+        task_type: bugfix
+        domain: payment
+      - type: no_fences
+
+  - name: "Config bug (TR)"
+    input: "env config ayarları yanlış çalışıyor hocam"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["config", "env"]
+      - type: intent_match
+        task_type: bugfix
+        domain: config
+      - type: no_fences
+
+  - name: "Test failure bug (TR)"
+    input: "testler patlıyor jest coverage düştü"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["test"]
+      - type: intent_match
+        task_type: bugfix
+        domain: tests
+      - type: no_fences
+
+  - name: "CLI flag bug (TR)"
+    input: "cli command flag parse edemiyor terminalde hata veriyor"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["cli", "command"]
+      - type: intent_match
+        task_type: bugfix
+        domain: cli
+      - type: no_fences
+
+  - name: "Dashboard slow bug (TR)"
+    input: "admin panel dashboard bozuldu veriler gelmiyor"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["dashboard"]
+      - type: intent_match
+        task_type: bugfix
+        domain: dashboard
+      - type: no_fences
+
+  - name: "Checkout discount bug (TR)"
+    input: "indirim kodu çalışmıyor sepette uygulanmıyor kampanya hatası"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["discount", "coupon"]
+      - type: intent_match
+        task_type: bugfix
+        domain: checkout
+      - type: no_fences

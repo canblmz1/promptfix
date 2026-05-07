@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PromptFix Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    h1 { color: #4ade80; font-size: 24px; }
+    label { display: block; margin-top: 16px; font-weight: 500; }
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      margin-top: 4px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #222;
+      color: #e0e0e0;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #4ade80;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #22c55e; }
+    .status { margin-top: 12px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>PromptFix Settings</h1>
+
+  <label>Service URL
+    <input id="serviceUrl" type="text" placeholder="http://127.0.0.1:52849">
+  </label>
+
+  <label>Service Token (optional)
+    <input id="serviceToken" type="password" placeholder="Leave blank if not set">
+  </label>
+
+  <button id="save">Save</button>
+  <button id="test" style="background:#333;color:#e0e0e0;margin-left:8px;">Test Connection</button>
+
+  <div class="status" id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

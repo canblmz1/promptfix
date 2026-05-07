@@ -1,0 +1,59 @@
+suite: turkish-features
+language: tr
+description: Turkish feature request prompts
+
+tests:
+  - name: "New API endpoint (TR)"
+    input: "user preferences endpoint ekle api'ye"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["endpoint", "implement"]
+      - type: intent_match
+        task_type: feature
+        domain: api
+      - type: no_fences
+
+  - name: "Dark mode feature (TR)"
+    input: "dark mode ekle settings sayfasına tema desteği"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["dark mode", "theme"]
+      - type: intent_match
+        task_type: feature
+        domain: ui
+      - type: no_fences
+
+  - name: "Database migration (TR)"
+    input: "database migration schema ekle user_preferences table"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["migration", "schema"]
+      - type: intent_match
+        task_type: feature
+        domain: database
+      - type: no_fences
+
+  - name: "Dashboard widget (TR)"
+    input: "admin panelde yeni widget ekle chart göster"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["widget", "dashboard"]
+      - type: intent_match
+        task_type: feature
+        domain: dashboard
+      - type: no_fences
+
+  - name: "Test coverage (TR)"
+    input: "auth modülüne test yaz coverage artır"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["test", "coverage"]
+      - type: intent_match
+        task_type: test
+        domain: auth
+      - type: no_fences

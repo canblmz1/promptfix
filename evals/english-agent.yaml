@@ -1,0 +1,59 @@
+suite: english-agent
+language: en
+description: English structured agent prompts
+
+tests:
+  - name: "Structured task prompt (EN)"
+    input: "implement oauth login with google using minimal changes"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["Task", "Context", "Instructions"]
+      - type: intent_match
+        task_type: feature
+        domain: auth
+      - type: no_fences
+
+  - name: "Multi-step instructions (EN)"
+    input: "fix the auth bug then add tests then update docs"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["Task", "Validation"]
+      - type: intent_match
+        task_type: bugfix
+        domain: auth
+      - type: no_fences
+
+  - name: "RAG query prompt (EN)"
+    input: "retrieve relevant docs about payment integration then implement it"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["Context", "Instructions"]
+      - type: intent_match
+        task_type: feature
+        domain: payment
+      - type: no_fences
+
+  - name: "Code review prompt (EN)"
+    input: "review the auth module for security issues dont change anything yet"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["review", "security"]
+      - type: intent_match
+        task_type: review
+        domain: auth
+      - type: no_fences
+
+  - name: "Security audit prompt (EN)"
+    input: "audit the api endpoints for vulnerabilities and report findings"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["audit", "vulnerabilities"]
+      - type: intent_match
+        task_type: review
+        domain: api
+      - type: no_fences

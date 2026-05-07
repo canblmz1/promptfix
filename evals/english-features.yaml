@@ -1,0 +1,59 @@
+suite: english-features
+language: en
+description: English feature request prompts
+
+tests:
+  - name: "New API endpoint (EN)"
+    input: "add user preferences endpoint to the api"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["endpoint", "implement"]
+      - type: intent_match
+        task_type: feature
+        domain: api
+      - type: no_fences
+
+  - name: "Dark mode feature (EN)"
+    input: "add dark mode to settings page theme support"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["dark mode", "theme"]
+      - type: intent_match
+        task_type: feature
+        domain: ui
+      - type: no_fences
+
+  - name: "Database migration (EN)"
+    input: "add database migration schema for user_preferences table"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["migration", "schema"]
+      - type: intent_match
+        task_type: feature
+        domain: database
+      - type: no_fences
+
+  - name: "Dashboard widget (EN)"
+    input: "add new widget to admin panel show charts"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["widget", "dashboard"]
+      - type: intent_match
+        task_type: feature
+        domain: dashboard
+      - type: no_fences
+
+  - name: "Test coverage (EN)"
+    input: "write tests for auth module increase coverage"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["test", "coverage"]
+      - type: intent_match
+        task_type: test
+        domain: auth
+      - type: no_fences

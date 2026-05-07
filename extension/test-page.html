@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PromptFix Extension Test Page</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    h1 { color: #58a6ff; }
+    h2 { color: #8b949e; margin-top: 32px; }
+    .test-block {
+      margin: 16px 0;
+      padding: 16px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: #161b22;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #8b949e;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+    .editable {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 14px;
+    }
+    .instructions {
+      background: #1c2128;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border-left: 3px solid #58a6ff;
+    }
+    .instructions ol { padding-left: 20px; }
+    .instructions li { margin: 6px 0; }
+    code {
+      background: #30363d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .sample {
+      color: #7ee787;
+      font-family: monospace;
+    }
+    hr { border-color: #30363d; margin: 32px 0; }
+  </style>
+</head>
+<body>
+  <h1>PromptFix Extension Test Page</h1>
+
+  <div class="instructions">
+    <strong>How to test:</strong>
+    <ol>
+      <li>Make sure <code>promptfix service</code> is running in a terminal</li>
+      <li>Select any text in the fields below</li>
+      <li>Right-click → <strong>PromptFix</strong> → <strong>Optimize Coding Prompt</strong></li>
+      <li>The selected text should be replaced with the optimized prompt</li>
+    </ol>
+  </div>
+
+  <h2>Test 1: Textarea</h2>
+  <div class="test-block">
+    <label>Standard textarea — select the text below and right-click → PromptFix</label>
+    <textarea id="test-textarea">login token refresh bozuldu başka yeri bozma</textarea>
+  </div>
+
+  <h2>Test 2: Input field</h2>
+  <div class="test-block">
+    <label>Standard text input</label>
+    <input type="text" id="test-input" value="dashboard yavaş render kontrol et">
+  </div>
+
+  <h2>Test 3: ContentEditable div</h2>
+  <div class="test-block">
+    <label>ContentEditable (used by ChatGPT, Claude, Notion, etc.)</label>
+    <div class="editable" contenteditable="true" id="test-editable">ödeme indirim checkout çalışmıyor kral fix et</div>
+  </div>
+
+  <h2>Test 4: Longer prompt</h2>
+  <div class="test-block">
+    <label>Multi-line textarea with a more complex prompt</label>
+    <textarea id="test-long">kanka api endpoint 500 dönüyor bazen timeout oluyor başka yeri elleme sadece bu endpoint'i düzelt test varsa çalıştır</textarea>
+  </div>
+
+  <h2>Test 5: English prompt</h2>
+  <div class="test-block">
+    <label>Pure English prompt</label>
+    <textarea id="test-english">the auth token refresh is broken and sometimes returns 401, don't touch other code, just fix the refresh flow</textarea>
+  </div>
+
+  <h2>Test 6: Feature request</h2>
+  <div class="test-block">
+    <label>Feature prompt (should not become a refactor)</label>
+    <textarea id="test-feature">add a dark mode toggle to the settings page, keep it simple</textarea>
+  </div>
+
+  <h2>Test 7: Agent mode test</h2>
+  <div class="test-block">
+    <label>Select and use "Agent Prompt" for structured output</label>
+    <textarea id="test-agent">database migration schema broke after adding user_preferences table, rollback olmadan düzelt, test yaz</textarea>
+  </div>
+
+  <hr>
+
+  <h2>Expected behavior</h2>
+  <div class="test-block">
+    <p><strong>Test 1 input:</strong> <span class="sample">login token refresh bozuldu başka yeri bozma</span></p>
+    <p><strong>Expected output (short mode):</strong> Something like:</p>
+    <p class="sample">"Investigate and fix the login token refresh issue with minimal, targeted changes. Inspect the existing auth/session/token refresh flow first, avoid unrelated refactors or config/secrets changes, run relevant tests if available, and summarize the root cause, fix, and verification steps."</p>
+    <p style="color: #f85149; margin-top: 12px;"><strong>Should NOT:</strong></p>
+    <ul style="color: #f85149;">
+      <li>Start with "Here is..." or "Sure,"</li>
+      <li>Contain "refactor" (user said "başka yeri bozma" = don't break other stuff)</li>
+      <li>Be a project summary</li>
+      <li>Broaden the task into an auth system rewrite</li>
+    </ul>
+  </div>
+</body>
+</html>

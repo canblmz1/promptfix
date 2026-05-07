@@ -1,0 +1,118 @@
+suite: english-bugfixes
+language: en
+description: English bugfix prompts with constraints
+
+tests:
+  - name: "Auth token refresh bug (EN)"
+    input: "login token refresh is broken, don't touch other code"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["minimal", "targeted", "auth"]
+      - type: not_contains
+        value: ["refactor", "overhaul", "redesign"]
+      - type: intent_match
+        task_type: bugfix
+        domain: auth
+      - type: no_fences
+
+  - name: "API 500 error (EN)"
+    input: "api endpoint returns 500 sometimes timeout occurs dont break other parts"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["endpoint", "timeout"]
+      - type: not_contains
+        value: ["refactor"]
+      - type: intent_match
+        task_type: bugfix
+        domain: api
+      - type: no_fences
+
+  - name: "Database migration bug (EN)"
+    input: "database migration fails schema error occurred"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["migration", "schema"]
+      - type: intent_match
+        task_type: bugfix
+        domain: database
+      - type: no_fences
+
+  - name: "UI render bug (EN)"
+    input: "dashboard render broken component not visible"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["render", "component"]
+      - type: intent_match
+        task_type: bugfix
+        domain: ui
+      - type: no_fences
+
+  - name: "Payment bug (EN)"
+    input: "payment not working checkout cart returns empty"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["payment", "checkout"]
+      - type: intent_match
+        task_type: bugfix
+        domain: payment
+      - type: no_fences
+
+  - name: "Config bug (EN)"
+    input: "env config settings wrong not loading properly"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["config", "env"]
+      - type: intent_match
+        task_type: bugfix
+        domain: config
+      - type: no_fences
+
+  - name: "Test failure bug (EN)"
+    input: "tests failing jest coverage dropped significantly"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["test"]
+      - type: intent_match
+        task_type: bugfix
+        domain: tests
+      - type: no_fences
+
+  - name: "CLI flag bug (EN)"
+    input: "cli command flag parse error terminal throws exception"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["cli", "command"]
+      - type: intent_match
+        task_type: bugfix
+        domain: cli
+      - type: no_fences
+
+  - name: "Dashboard data bug (EN)"
+    input: "admin panel dashboard broken data not loading"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["dashboard"]
+      - type: intent_match
+        task_type: bugfix
+        domain: dashboard
+      - type: no_fences
+
+  - name: "Checkout discount bug (EN)"
+    input: "discount code not working cart not applying coupon campaign error"
+    mode: short
+    asserts:
+      - type: contains
+        value: ["discount", "coupon"]
+      - type: intent_match
+        task_type: bugfix
+        domain: checkout
+      - type: no_fences

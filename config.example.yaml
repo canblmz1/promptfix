@@ -1,0 +1,52 @@
+provider: groq
+default_mode: short
+
+providers:
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    model: llama-3.3-70b-versatile
+    # Option 1: Use environment variable (recommended)
+    api_key_env: GROQ_API_KEY
+    # Option 2: Direct key (not recommended for shared systems)
+    # api_key: "your_key_here"
+    timeout_seconds: 30
+  openai_compatible:
+    base_url: https://api.openai.com/v1
+    model: gpt-4.1-mini
+    api_key_env: OPENAI_API_KEY
+    timeout_seconds: 30
+  ollama:
+    base_url: http://localhost:11434
+    model: qwen2.5:7b
+    timeout_seconds: 60
+
+context:
+  enabled: true
+  mode_limits:
+    raw: 0
+    fast: 300
+    short: 600
+    agent: 1500
+    explain: 3000
+  require_relevance: true
+
+validation:
+  enabled: true
+  retry_on_invalid: true
+  deterministic_fallback: true
+
+hotkeys:
+  short: ctrl+alt+s
+  agent: ctrl+alt+p
+  raw: ctrl+alt+r
+
+service:
+  host: 127.0.0.1
+  port: 52849
+  # Optional: set a token to protect the local service
+  token: ""
+
+chat:
+  default_mode: short
+  max_context_messages: 10
+  show_tokens: false

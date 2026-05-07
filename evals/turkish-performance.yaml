@@ -1,0 +1,59 @@
+suite: turkish-performance
+language: tr
+description: Turkish performance issue prompts
+
+tests:
+  - name: "Dashboard render slow (TR)"
+    input: "dashboard yavaş render kontrol et optimize et"
+    mode: explain
+    asserts:
+      - type: contains
+        value: ["performance", "render"]
+      - type: intent_match
+        task_type: performance
+        domain: dashboard
+      - type: no_fences
+
+  - name: "API latency (TR)"
+    input: "api endpoint çok yavaş response dönüyor timeout oluyor"
+    mode: explain
+    asserts:
+      - type: contains
+        value: ["latency", "endpoint"]
+      - type: intent_match
+        task_type: performance
+        domain: api
+      - type: no_fences
+
+  - name: "Database query slow (TR)"
+    input: "database query çok yavaş sql optimize et"
+    mode: explain
+    asserts:
+      - type: contains
+        value: ["query", "database"]
+      - type: intent_match
+        task_type: performance
+        domain: database
+      - type: no_fences
+
+  - name: "Memory leak (TR)"
+    input: "sayfa kasıyor scroll yaparken donuyor memory leak var galiba"
+    mode: explain
+    asserts:
+      - type: contains
+        value: ["memory", "performance"]
+      - type: intent_match
+        task_type: performance
+        domain: ui
+      - type: no_fences
+
+  - name: "Bundle size (TR)"
+    input: "frontend bundle çok büyük yüklenmesi uzun sürüyor"
+    mode: explain
+    asserts:
+      - type: contains
+        value: ["bundle", "performance"]
+      - type: intent_match
+        task_type: performance
+        domain: ui
+      - type: no_fences

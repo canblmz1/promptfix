@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>PromptFix Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 400px; height: 580px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-size: 13px;
+      display: flex; flex-direction: column;
+    }
+    .header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-bottom: 1px solid #21262d;
+      background: #161b22;
+    }
+    .header h1 { font-size: 14px; font-weight: 600; color: #4ade80; flex: 1; }
+    .header .mode-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 12px;
+      background: #1a3a2a; color: #4ade80; border: 1px solid #4ade80;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .thread-info {
+      font-size: 10px; color: #8b949e; padding: 4px 12px;
+      background: #0d1117; border-bottom: 1px solid #21262d;
+      display: flex; justify-content: space-between;
+    }
+
+    .chat-area {
+      flex: 1; overflow-y: auto; padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .message {
+      max-width: 90%; padding: 8px 12px; border-radius: 12px;
+      line-height: 1.4; word-wrap: break-word; font-size: 13px;
+    }
+    .message.user {
+      align-self: flex-end;
+      background: #1a3a2a; color: #c9d1d9; border-bottom-right-radius: 2px;
+    }
+    .message.assistant {
+      align-self: flex-start;
+      background: #21262d; color: #c9d1d9; border-bottom-left-radius: 2px;
+    }
+    .message.system {
+      align-self: center;
+      background: #161b22; color: #8b949e; font-size: 11px;
+      border: 1px solid #30363d; max-width: 95%;
+    }
+    .message-meta {
+      font-size: 9px; color: #484f58; margin-top: 3px;
+      text-align: right;
+    }
+    .typing {
+      align-self: flex-start; font-size: 12px; color: #8b949e;
+      padding: 4px 8px; font-style: italic;
+    }
+    .streaming {
+      align-self: flex-start;
+      background: #21262d; color: #c9d1d9; border-bottom-left-radius: 2px;
+      max-width: 90%; padding: 8px 12px; border-radius: 12px;
+      line-height: 1.4; word-wrap: break-word; font-size: 13px;
+      min-height: 20px;
+    }
+    .streaming::after {
+      content: "▋";
+      animation: blink 1s infinite;
+      color: #4ade80;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .empty-state {
+      text-align: center; color: #484f58; padding: 40px 20px;
+      font-style: italic;
+    }
+    .empty-state .hint {
+      font-size: 11px; margin-top: 8px; color: #30363d;
+    }
+
+    .input-area {
+      padding: 10px 12px; border-top: 1px solid #21262d;
+      background: #161b22;
+      position: relative;
+    }
+    .input-row { display: flex; gap: 8px; }
+    textarea {
+      flex: 1; resize: none; height: 40px; max-height: 80px;
+      background: #0d1117; color: #c9d1d9; border: 1px solid #30363d;
+      border-radius: 8px; padding: 8px 10px; font-size: 13px;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: #4ade80; }
+    button.send {
+      width: 40px; height: 40px; border-radius: 8px;
+      background: #4ade80; color: #000; border: none;
+      font-size: 16px; cursor: pointer; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    button.send:hover { background: #22c55e; }
+    button.send:disabled { background: #30363d; color: #484f58; cursor: not-allowed; }
+    .mode-bar {
+      display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .mode-chip {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+      cursor: pointer; text-transform: uppercase;
+    }
+    .mode-chip:hover { border-color: #4ade80; color: #4ade80; }
+    .mode-chip.active { background: #1a3a2a; color: #4ade80; border-color: #4ade80; }
+
+    /* Autocomplete dropdown */
+    .autocomplete {
+      position: absolute;
+      bottom: 100%;
+      left: 12px;
+      right: 60px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      max-height: 160px;
+      overflow-y: auto;
+      z-index: 200;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .autocomplete.show { display: block; }
+    .autocomplete-item {
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover, .autocomplete-item.selected {
+      background: #21262d;
+    }
+    .autocomplete-item .label {
+      color: #c9d1d9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+    .autocomplete-item .type {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .autocomplete-item .type.command {
+      background: #1a3a2a; color: #4ade80;
+    }
+    .autocomplete-item .type.snippet {
+      background: #1a2a3a; color: #58a6ff;
+    }
+    .autocomplete-item .type.history {
+      background: #3a2a1a; color: #d29922;
+    }
+
+    .drawer {
+      position: absolute; top: 0; left: 0; width: 200px; height: 100%;
+      background: #161b22; border-right: 1px solid #21262d;
+      transform: translateX(-100%); transition: transform 0.2s;
+      z-index: 100; display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-header {
+      padding: 10px 12px; border-bottom: 1px solid #21262d;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .drawer-header h2 { font-size: 12px; color: #4ade80; }
+    .drawer-close { background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px; }
+    .thread-list { flex: 1; overflow-y: auto; }
+    .thread-item {
+      padding: 8px 12px; border-bottom: 1px solid #21262d;
+      cursor: pointer; font-size: 12px;
+    }
+    .thread-item:hover { background: #21262d; }
+    .thread-item.active { background: #1a3a2a; }
+    .thread-title { color: #c9d1d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .thread-id { color: #484f58; font-size: 10px; }
+    .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: none; z-index: 99;
+    }
+    .overlay.show { display: block; }
+
+    .menu-btn {
+      background: none; border: none; color: #8b949e; cursor: pointer;
+      font-size: 16px; padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <h2>Threads</h2>
+      <button class="drawer-close" id="closeDrawer">&times;</button>
+    </div>
+    <div class="thread-list" id="threadList"></div>
+  </div>
+
+  <div class="header">
+    <button class="menu-btn" id="openDrawer">&#9776;</button>
+    <h1>PromptFix Chat</h1>
+    <span class="mode-badge" id="modeBadge">short</span>
+  </div>
+  <div class="thread-info">
+    <span id="threadTitle">New thread</span>
+    <span id="statusText">Ready</span>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state">
+      <div>Start a conversation</div>
+      <div class="hint">Type a prompt and I'll optimize it.<br>Use /help for commands.</div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="mode-bar" id="modeBar">
+      <span class="mode-chip" data-mode="fast">fast</span>
+      <span class="mode-chip" data-mode="short">short</span>
+      <span class="mode-chip" data-mode="raw">raw</span>
+      <span class="mode-chip" data-mode="agent">agent</span>
+      <span class="mode-chip" data-mode="explain">explain</span>
+    </div>
+    <div class="autocomplete" id="autocomplete"></div>
+    <div class="input-row">
+      <textarea id="inputBox" placeholder="Type /help for commands..." autocomplete="off"></textarea>
+      <button class="send" id="sendBtn">&rarr;</button>
+    </div>
+  </div>
+
+  <script src="chat.js"></script>
+</body>
+</html>
