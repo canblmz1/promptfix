@@ -159,8 +159,9 @@ class TestChatEngineCommands:
 
 class TestChatEngineMessages:
     def test_process_empty_message(self):
+        mock_provider = MagicMock()
         thread = create_thread()
-        result = process_message(thread, "   ")
+        result = process_message(thread, "   ", provider=mock_provider)
         assert result.status == "error"
 
     def test_process_chat_message(self):
@@ -229,14 +230,16 @@ class TestChatEngineStreaming:
         assert result_items[0]["status"] == "ok"
 
     def test_process_message_stream_empty(self):
+        mock_provider = MagicMock()
         thread = create_thread()
-        chunks = list(process_message_stream(thread, "   "))
+        chunks = list(process_message_stream(thread, "   ", provider=mock_provider))
         assert len(chunks) == 1
         assert chunks[0]["type"] == "error"
 
     def test_process_message_stream_command(self):
+        mock_provider = MagicMock()
         thread = create_thread()
-        chunks = list(process_message_stream(thread, "/help"))
+        chunks = list(process_message_stream(thread, "/help", provider=mock_provider))
         assert len(chunks) == 1
         assert chunks[0]["type"] == "result"
         assert chunks[0]["status"] == "command"
