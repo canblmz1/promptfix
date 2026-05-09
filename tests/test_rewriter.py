@@ -243,3 +243,66 @@ class TestMultiProviderFallback:
         assert "ollama" not in call_log, f"Fallback was invoked unexpectedly: {call_log}"
         assert result.provider == "groq"
 
+    def test_fallback_retry_uses_fallback_provider_not_primary(self):
+        """Regression: validation retry must use the successful fallback provider.
+
+        When primary fails and fallback succeeds but output is invalid,
+        the retry call must go to the fallback provider — NOT the broken primary.
+        """
+        primary_mock = MagicMock()
+        primary_mock.complete.side_effect = RuntimeError("groq down")
+
+        # Fallback returns invalid output on first call, valid on retry
+        fallback_mock = MagicMock()
+        fallback_mock.complete.side_effect = [
+            "Project overview: this is a React application.",  # invalid — triggers retry
+            "Investigate and fix the login token refresh with minimal, targeted changes.",  # valid retry
+        ]
+
+        def _fake_create_provider(config, name=None):
+            if name == "groq" or name is None:
+                return primary_mock
+            return fallback_mock
+
+        config = {
+            "provider": "groq",
+            "default_mode": "short",
+            "validation": {
+                "enabled": True,
+                "retry_on_invalid": True,
+                "deterministic_fallback": True,
+            },
+            "providers": {
+                "groq": {
+                    "base_url": "https://api.groq.com/openai/v1",
+                    "model": "llama-3.3-70b-versatile",
+                    "api_key_env": "GROQ_API_KEY",
+                    "timeout_seconds": 30,
+                },
+                "ollama": {
+                    "base_url": "http://localhost:11434",
+                    "model": "qwen2.5:7b",
+                    "timeout_seconds": 60,
+                },
+            },
+        }
+
+        with patch("promptfix.rewriter.create_provider", side_effect=_fake_create_provider):
+            result = rewrite(
+                text="login token refresh bozuldu başka yeri bozma",
+                mode="short",
+                config=config,
+                provider=None,
+            )
+
+        # Primary should have been tried exactly once (and raised RuntimeError)
+        assert primary_mock.complete.call_count == 1, (
+            f"Primary provider should have been tried once. Got: {primary_mock.complete.call_count}"
+        )
+        # Fallback should have been called twice: initial + retry
+        assert fallback_mock.complete.call_count == 2, (
+            f"Expected fallback to be called twice (initial + retry), "
+            f"got {fallback_mock.complete.call_count}. "
+            "If count is 1, retry went to the broken primary instead."
+        )
+        assert result.provider == "ollama"

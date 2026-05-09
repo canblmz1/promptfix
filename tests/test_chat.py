@@ -20,6 +20,26 @@ from promptfix.snippets import add_snippet, get_snippet, delete_snippet, list_sn
 
 
 class TestChatSession:
+    def test_create_thread_id_is_full_uuid(self):
+        """Thread ID must be a full UUID v4, not an 8-char slice."""
+        import re
+        import uuid as _uuid
+        uuid_re = re.compile(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            re.IGNORECASE,
+        )
+        thread = create_thread(mode="short", provider="groq", title="Test")
+        assert uuid_re.match(thread.id), (
+            f"Thread ID '{thread.id}' is not a valid UUID v4. "
+            "Service endpoints require full UUID format."
+        )
+        # Also verify it can round-trip through str(uuid.uuid4())
+        try:
+            _uuid.UUID(thread.id, version=4)
+        except ValueError:
+            pytest.fail(f"Thread ID '{thread.id}' is not parseable as UUID v4")
+        delete_thread(thread.id)
+
     def test_create_thread(self):
         thread = create_thread(mode="short", provider="groq", title="Test")
         assert thread.id
@@ -246,6 +266,17 @@ class TestChatEngineStreaming:
 
 
 class TestSnippets:
+    def test_snippet_save_creates_directory(self, tmp_path, monkeypatch):
+        """_save_snippets must not crash when ~/.promptfix does not exist yet."""
+        import promptfix.snippets as snip_mod
+        fake_file = tmp_path / "nonexistent_dir" / "snippets.json"
+        monkeypatch.setattr(snip_mod, "SNIPPETS_FILE", fake_file)
+        # Directory does not exist — should not raise
+        snip_mod._save_snippets({"key": "value"})
+        assert fake_file.exists()
+        data = json.loads(fake_file.read_text())
+        assert data == {"key": "value"}
+
     def test_add_and_get_snippet(self):
         add_snippet("reactbug", "React component bug, minimal changes")
         content = get_snippet("reactbug")

@@ -118,7 +118,9 @@ def optimize():
     if denied:
         return denied
 
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
     mode = data.get("mode")
 
@@ -172,7 +174,9 @@ def chat_endpoint():
     if denied:
         return denied
 
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
     thread_id = data.get("thread_id")
     mode = data.get("mode")
@@ -189,7 +193,7 @@ def chat_endpoint():
     try:
         provider = _get_provider()
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Provider unavailable"}), 500
 
     # Load or create thread
     thread = load_thread(thread_id) if thread_id else None
@@ -226,7 +230,9 @@ def chat_stream_endpoint():
     if denied:
         return denied
 
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
     thread_id = data.get("thread_id")
     mode = data.get("mode")
@@ -243,7 +249,7 @@ def chat_stream_endpoint():
     try:
         provider = _get_provider()
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Provider unavailable"}), 500
 
     # Load or create thread
     thread = load_thread(thread_id) if thread_id else None

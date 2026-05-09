@@ -18,7 +18,7 @@ document.getElementById("save").addEventListener("click", () => {
 });
 
 document.getElementById("test").addEventListener("click", async () => {
-  const serviceUrl = document.getElementById("serviceUrl").value.trim();
+  const serviceUrl = document.getElementById("serviceUrl").value.trim().replace(/\/+$/, "");
   const status = document.getElementById("status");
   status.textContent = "Testing...";
   status.style.color = "#e0e0e0";

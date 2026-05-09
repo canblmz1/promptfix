@@ -28,6 +28,7 @@ def _load_snippets() -> dict[str, str]:
 
 
 def _save_snippets(snippets: dict[str, str]) -> None:
+    SNIPPETS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SNIPPETS_FILE.write_text(
         json.dumps(snippets, indent=2, ensure_ascii=False),
         encoding="utf-8",

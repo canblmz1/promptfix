@@ -108,6 +108,8 @@ def rewrite(
     raw_output: str | None = None
     last_exc: Exception | None = None
     tried_providers = [provider_name]
+    # Track the provider instance that succeeded so retry uses the same one
+    active_provider = provider
 
     try:
         raw_output = provider.complete(messages)
@@ -120,6 +122,7 @@ def rewrite(
                 fallback_provider = create_provider(config, fallback_name)
                 raw_output = fallback_provider.complete(messages)
                 provider_name = fallback_name  # report which provider actually responded
+                active_provider = fallback_provider  # retry must use this provider
                 tried_providers.append(fallback_name)
                 last_exc = None
                 break
@@ -140,7 +143,7 @@ def rewrite(
         result = validate_output(cleaned, intent)
         if not result.valid and validation.get("retry_on_invalid", True):
             retry_messages = build_retry_prompt(text)
-            raw_output = provider.complete(retry_messages)
+            raw_output = active_provider.complete(retry_messages)
             cleaned = clean_output(raw_output)
             result = validate_output(cleaned, intent)
 
