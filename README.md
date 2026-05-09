@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-152%20passing-success?style=flat-square&logo=pytest" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-160%20passing-success?style=flat-square&logo=pytest" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/provider-Groq%20%7C%20Ollama%20%7C%20OpenAI-orange?style=flat-square" alt="Providers">
@@ -257,10 +257,14 @@ promptfix debug-rewrite "login token refresh bozuldu" --mode agent
 
 ## Security
 
-- API keys stored **only** in environment variables
-- Local service binds to **127.0.0.1 only**
+- API keys stored **only** in environment variables or `~/.promptfix/config.yaml` (never sent to the browser)
+- Local service binds to **127.0.0.1 only** — not reachable from outside your machine
 - Browser extension **never sees API keys**
-- Optional service token for extra security
+- **CORS restricted** to `chrome-extension://`, `moz-extension://`, and `localhost` origins — unknown web origins are blocked
+- **Input length limited** to 32 000 characters per request — oversized payloads are rejected with HTTP 413
+- **All endpoints protected** by the optional service token (`service.token` in config) — including `/history`, `/threads`, `/chat`, and `/suggestions`
+- **Thread IDs validated** as UUID v4 on every endpoint — path-traversal attempts are rejected with HTTP 400
+- Optional service token for extra authentication (`service.token` in config)
 - No SaaS backend, no user accounts, no database
 
 ---

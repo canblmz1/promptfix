@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -16,6 +17,23 @@ app = Flask(__name__)
 _provider = None
 _config = None
 _start_time = time.time()
+
+# Maximum allowed input text length (characters)
+MAX_TEXT_LENGTH = 32_000
+
+# Allowed CORS origins: Chrome/Firefox extensions and localhost only
+_ALLOWED_ORIGIN_PREFIXES = (
+    "chrome-extension://",
+    "moz-extension://",
+    "http://127.0.0.1",
+    "http://localhost",
+)
+
+# UUID v4 pattern for thread IDs
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
 
 
 def _get_config():
@@ -32,11 +50,27 @@ def _get_provider():
     return _provider
 
 
+def _check_auth():
+    """Return a 401 Response if a token is configured and the request is unauthorised.
+    Returns None when the request is allowed to proceed.
+    """
+    token = _get_config().get("service", {}).get("token", "")
+    if token:
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {token}":
+            return jsonify({"error": "Unauthorized"}), 401
+    return None
+
+
 @app.after_request
 def add_cors(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    """Restrict CORS to localhost and browser-extension origins only."""
+    origin = request.headers.get("Origin", "")
+    if origin and origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, DELETE"
     return response
 
 
@@ -68,31 +102,34 @@ def optimize():
     if request.method == "OPTIONS":
         return "", 204
 
+    denied = _check_auth()
+    if denied:
+        return denied
+
     data = request.get_json(force=True)
     text = data.get("text", "").strip()
     mode = data.get("mode")
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
+    if len(text) > MAX_TEXT_LENGTH:
+        return jsonify({"error": f"Text too long (max {MAX_TEXT_LENGTH} characters)"}), 413
 
     config = _get_config()
-    token = config.get("service", {}).get("token", "")
-    if token:
-        auth = request.headers.get("Authorization", "")
-        if auth != f"Bearer {token}":
-            return jsonify({"error": "Unauthorized"}), 401
-
     try:
         provider = _get_provider()
         result = rewrite(text=text, mode=mode, config=config, provider=provider, source="api")
         return jsonify(result.to_dict())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/history", methods=["GET"])
 def history():
     """Return recent optimization history."""
+    denied = _check_auth()
+    if denied:
+        return denied
     from promptfix.history import get_history
     limit = request.args.get("limit", 20, type=int)
     entries = get_history(min(limit, 100))
@@ -101,6 +138,9 @@ def history():
 
 @app.route("/history", methods=["DELETE"])
 def clear_history_endpoint():
+    denied = _check_auth()
+    if denied:
+        return denied
     from promptfix.history import clear_history
     count = clear_history()
     return jsonify({"cleared": count})
@@ -114,6 +154,10 @@ def chat_endpoint():
     if request.method == "OPTIONS":
         return "", 204
 
+    denied = _check_auth()
+    if denied:
+        return denied
+
     data = request.get_json(force=True)
     text = data.get("text", "").strip()
     thread_id = data.get("thread_id")
@@ -121,15 +165,12 @@ def chat_endpoint():
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
+    if len(text) > MAX_TEXT_LENGTH:
+        return jsonify({"error": f"Text too long (max {MAX_TEXT_LENGTH} characters)"}), 413
+    if thread_id is not None and not _UUID_RE.match(str(thread_id)):
+        return jsonify({"error": "Invalid thread_id"}), 400
 
     config = _get_config()
-
-    # Auth check
-    token = config.get("service", {}).get("token", "")
-    if token:
-        auth = request.headers.get("Authorization", "")
-        if auth != f"Bearer {token}":
-            return jsonify({"error": "Unauthorized"}), 401
 
     try:
         provider = _get_provider()
@@ -166,6 +207,10 @@ def chat_stream_endpoint():
     if request.method == "OPTIONS":
         return "", 204
 
+    denied = _check_auth()
+    if denied:
+        return denied
+
     data = request.get_json(force=True)
     text = data.get("text", "").strip()
     thread_id = data.get("thread_id")
@@ -173,15 +218,12 @@ def chat_stream_endpoint():
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
+    if len(text) > MAX_TEXT_LENGTH:
+        return jsonify({"error": f"Text too long (max {MAX_TEXT_LENGTH} characters)"}), 413
+    if thread_id is not None and not _UUID_RE.match(str(thread_id)):
+        return jsonify({"error": "Invalid thread_id"}), 400
 
     config = _get_config()
-
-    # Auth check
-    token = config.get("service", {}).get("token", "")
-    if token:
-        auth = request.headers.get("Authorization", "")
-        if auth != f"Bearer {token}":
-            return jsonify({"error": "Unauthorized"}), 401
 
     try:
         provider = _get_provider()
@@ -221,8 +263,14 @@ def suggestions_endpoint():
     if request.method == "OPTIONS":
         return "", 204
 
+    denied = _check_auth()
+    if denied:
+        return denied
+
     text = request.args.get("text", "")
     thread_id = request.args.get("thread_id")
+    if thread_id is not None and not _UUID_RE.match(str(thread_id)):
+        return jsonify({"error": "Invalid thread_id"}), 400
 
     thread = load_thread(thread_id) if thread_id else None
     if not thread:
@@ -235,6 +283,9 @@ def suggestions_endpoint():
 @app.route("/threads", methods=["GET"])
 def list_threads_endpoint():
     """GET /threads — List all saved threads."""
+    denied = _check_auth()
+    if denied:
+        return denied
     threads = list_threads()
     return jsonify({
         "threads": [
@@ -254,6 +305,11 @@ def list_threads_endpoint():
 @app.route("/threads/<thread_id>", methods=["GET"])
 def get_thread_endpoint(thread_id: str):
     """GET /threads/<id> — Get thread details and messages."""
+    denied = _check_auth()
+    if denied:
+        return denied
+    if not _UUID_RE.match(thread_id):
+        return jsonify({"error": "Invalid thread_id"}), 400
     thread = load_thread(thread_id)
     if not thread:
         return jsonify({"error": "Thread not found"}), 404
@@ -263,6 +319,11 @@ def get_thread_endpoint(thread_id: str):
 @app.route("/threads/<thread_id>", methods=["DELETE"])
 def delete_thread_endpoint(thread_id: str):
     """DELETE /threads/<id> — Delete a thread."""
+    denied = _check_auth()
+    if denied:
+        return denied
+    if not _UUID_RE.match(thread_id):
+        return jsonify({"error": "Invalid thread_id"}), 400
     if delete_thread(thread_id):
         return jsonify({"deleted": True})
     return jsonify({"error": "Thread not found"}), 404
