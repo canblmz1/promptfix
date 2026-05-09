@@ -36,7 +36,7 @@ const els = {
 
 async function getServiceUrl() {
   const items = await chrome.storage.sync.get({ serviceUrl: SERVICE_URL_DEFAULT });
-  return items.serviceUrl;
+  return items.serviceUrl.replace(/\/+$/, "");
 }
 
 function escapeHtml(text) {

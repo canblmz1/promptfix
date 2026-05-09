@@ -102,7 +102,8 @@ async function callService(text, mode) {
     serviceToken: "",
   });
 
-  const url = `${settings.serviceUrl}/optimize`;
+  const baseUrl = settings.serviceUrl.replace(/\/+$/, "");
+  const url = `${baseUrl}/optimize`;
   const headers = { "Content-Type": "application/json" };
   if (settings.serviceToken) {
     headers["Authorization"] = `Bearer ${settings.serviceToken}`;
