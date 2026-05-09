@@ -291,3 +291,112 @@ class TestConfigReloadEndpoint:
             mock_cfg.return_value = {"provider": "groq", "service": {"token": "secret"}}
             resp = client.post("/config/reload")
         assert resp.status_code == 401
+
+
+class TestInvalidJsonHandling:
+    """Regression tests: invalid/missing JSON body must return 400, not 500."""
+
+    def test_optimize_invalid_json_returns_400(self, client):
+        resp = client.post(
+            "/optimize",
+            data="not json at all",
+            content_type="text/plain",
+        )
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert "error" in data
+
+    def test_optimize_empty_body_returns_400(self, client):
+        resp = client.post("/optimize", data="", content_type="application/json")
+        assert resp.status_code == 400
+
+    def test_chat_invalid_json_returns_400(self, client):
+        resp = client.post(
+            "/chat",
+            data="{broken json",
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    def test_chat_stream_invalid_json_returns_400(self, client):
+        resp = client.post(
+            "/chat/stream",
+            data="totally not json",
+            content_type="text/plain",
+        )
+        assert resp.status_code == 400
+
+
+class TestThreadIdValidation:
+    """Regression tests: thread IDs must be full UUID v4 format."""
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_chat_returns_full_uuid_thread_id(self, mock_config, mock_provider, client):
+        """POST /chat without thread_id must return a full UUID v4 as thread_id."""
+        import re
+        uuid_re = re.compile(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            re.IGNORECASE,
+        )
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+            "chat": {"default_mode": "short"},
+        }
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = "Investigate and fix the login issue with minimal changes."
+        mock_provider.return_value = mock_prov
+
+        resp = client.post("/chat", json={"text": "login bug bozuldu"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        thread_id = data.get("thread_id", "")
+        assert uuid_re.match(thread_id), (
+            f"thread_id '{thread_id}' is not a full UUID v4. "
+            "Extension cannot continue a chat thread with short IDs."
+        )
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_chat_continues_with_returned_thread_id(self, mock_config, mock_provider, client):
+        """Thread returned by first /chat must be accepted by second /chat call."""
+        cfg = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+            "chat": {"default_mode": "short"},
+        }
+        mock_config.return_value = cfg
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = "Investigate with minimal changes."
+        mock_provider.return_value = mock_prov
+
+        # First message — creates thread
+        resp1 = client.post("/chat", json={"text": "login bug bozuldu"})
+        assert resp1.status_code == 200
+        thread_id = resp1.get_json()["thread_id"]
+
+        # Second message — must continue same thread without 400
+        resp2 = client.post("/chat", json={"text": "devam et", "thread_id": thread_id})
+        assert resp2.status_code == 200, (
+            f"Second /chat call with thread_id='{thread_id}' returned {resp2.status_code}. "
+            "Thread continuation is broken."
+        )
+        assert resp2.get_json()["thread_id"] == thread_id
+
+    def test_threads_endpoint_rejects_short_id(self, client):
+        """GET /threads/<8-char-id> must return 400 (not 500)."""
+        resp = client.get("/threads/abcd1234")
+        assert resp.status_code == 400
+        assert "error" in resp.get_json()
+
+    def test_threads_endpoint_accepts_valid_uuid(self, client):
+        """GET /threads/<valid-uuid> that doesn't exist must return 404, not 400."""
+        resp = client.get("/threads/00000000-0000-4000-8000-000000000001")
+        assert resp.status_code == 404
