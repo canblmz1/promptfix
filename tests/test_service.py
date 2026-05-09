@@ -268,3 +268,26 @@ class TestChatEndpoint:
         }
         resp = client.post("/chat", json={"text": "hello", "thread_id": "../../../etc"})
         assert resp.status_code == 400
+
+
+class TestConfigReloadEndpoint:
+    def test_reload_config_no_token(self, client):
+        """POST /config/reload without a token (none configured) returns 200."""
+        from unittest.mock import patch
+        with patch("promptfix.service._get_config") as mock_cfg:
+            mock_cfg.return_value = {"provider": "groq", "service": {"token": ""}}
+            with patch("promptfix.service.load_config") as mock_load:
+                mock_load.return_value = {"provider": "groq", "service": {"token": ""}}
+                resp = client.post("/config/reload")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["status"] == "ok"
+        assert "provider" in data
+
+    def test_reload_config_blocked_without_token(self, client):
+        """POST /config/reload must be 401 when token is set and not provided."""
+        from unittest.mock import patch
+        with patch("promptfix.service._get_config") as mock_cfg:
+            mock_cfg.return_value = {"provider": "groq", "service": {"token": "secret"}}
+            resp = client.post("/config/reload")
+        assert resp.status_code == 401

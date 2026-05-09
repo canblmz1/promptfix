@@ -13,53 +13,49 @@ Flow per hotkey press:
 from __future__ import annotations
 
 import ctypes
-import ctypes.wintypes
 import sys
 import time
 import threading
 
 
 # ---------------------------------------------------------------------------
-# Win32 clipboard with proper 64-bit pointer handling
+# Win32 clipboard — only initialised on Windows
 # ---------------------------------------------------------------------------
 
-_user32 = ctypes.windll.user32
-_kernel32 = ctypes.windll.kernel32
+if sys.platform == "win32":
+    import ctypes.wintypes as _wt
 
-# Correctly declare argtypes/restype so pointers are 64-bit on x64 Windows
-_user32.OpenClipboard.argtypes = [ctypes.wintypes.HWND]
-_user32.OpenClipboard.restype = ctypes.wintypes.BOOL
+    _user32 = ctypes.windll.user32
+    _kernel32 = ctypes.windll.kernel32
 
-_user32.CloseClipboard.argtypes = []
-_user32.CloseClipboard.restype = ctypes.wintypes.BOOL
+    _user32.OpenClipboard.argtypes = [_wt.HWND]
+    _user32.OpenClipboard.restype = _wt.BOOL
+    _user32.CloseClipboard.argtypes = []
+    _user32.CloseClipboard.restype = _wt.BOOL
+    _user32.EmptyClipboard.argtypes = []
+    _user32.EmptyClipboard.restype = _wt.BOOL
+    _user32.GetClipboardData.argtypes = [_wt.UINT]
+    _user32.GetClipboardData.restype = ctypes.c_void_p
+    _user32.SetClipboardData.argtypes = [_wt.UINT, ctypes.c_void_p]
+    _user32.SetClipboardData.restype = ctypes.c_void_p
 
-_user32.EmptyClipboard.argtypes = []
-_user32.EmptyClipboard.restype = ctypes.wintypes.BOOL
+    _kernel32.GlobalAlloc.argtypes = [_wt.UINT, ctypes.c_size_t]
+    _kernel32.GlobalAlloc.restype = ctypes.c_void_p
+    _kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
+    _kernel32.GlobalLock.restype = ctypes.c_void_p
+    _kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
+    _kernel32.GlobalUnlock.restype = _wt.BOOL
+    _kernel32.GlobalSize.argtypes = [ctypes.c_void_p]
+    _kernel32.GlobalSize.restype = ctypes.c_size_t
 
-_user32.GetClipboardData.argtypes = [ctypes.wintypes.UINT]
-_user32.GetClipboardData.restype = ctypes.c_void_p  # HANDLE — must be c_void_p for 64-bit
-
-_user32.SetClipboardData.argtypes = [ctypes.wintypes.UINT, ctypes.c_void_p]
-_user32.SetClipboardData.restype = ctypes.c_void_p
-
-_kernel32.GlobalAlloc.argtypes = [ctypes.wintypes.UINT, ctypes.c_size_t]
-_kernel32.GlobalAlloc.restype = ctypes.c_void_p
-
-_kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
-_kernel32.GlobalLock.restype = ctypes.c_void_p
-
-_kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
-_kernel32.GlobalUnlock.restype = ctypes.wintypes.BOOL
-
-_kernel32.GlobalSize.argtypes = [ctypes.c_void_p]
-_kernel32.GlobalSize.restype = ctypes.c_size_t
-
-CF_UNICODETEXT = 13
-GMEM_MOVEABLE = 0x0002
+    CF_UNICODETEXT = 13
+    GMEM_MOVEABLE = 0x0002
 
 
 def _clipboard_get() -> str:
-    """Read current clipboard text via Win32 API (64-bit safe)."""
+    """Read current clipboard text. Returns empty string on non-Windows."""
+    if sys.platform != "win32":
+        return ""
     if not _user32.OpenClipboard(None):
         return ""
     try:
@@ -70,12 +66,10 @@ def _clipboard_get() -> str:
         if not ptr:
             return ""
         try:
-            # Read the size to avoid overrun, then decode
             size = _kernel32.GlobalSize(handle)
             if size == 0:
                 return ""
             raw = ctypes.string_at(ptr, size)
-            # Decode as UTF-16-LE, strip null terminators
             return raw.decode("utf-16-le", errors="replace").rstrip("\x00")
         finally:
             _kernel32.GlobalUnlock(handle)
@@ -84,7 +78,9 @@ def _clipboard_get() -> str:
 
 
 def _clipboard_set(text: str) -> bool:
-    """Set clipboard text via Win32 API (64-bit safe)."""
+    """Set clipboard text. Returns False on non-Windows."""
+    if sys.platform != "win32":
+        return False
     if not _user32.OpenClipboard(None):
         return False
     try:
@@ -126,6 +122,11 @@ _VALID_MODES = {"fast", "short", "agent", "raw", "explain"}
 
 
 def run_tray():
+    if sys.platform != "win32":
+        print("The tray + hotkey feature is currently Windows-only.")
+        print("On Linux/macOS, use `promptfix service` and the browser extension instead.")
+        sys.exit(1)
+
     try:
         import keyboard
     except ImportError:

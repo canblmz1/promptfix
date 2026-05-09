@@ -329,6 +329,19 @@ def delete_thread_endpoint(thread_id: str):
     return jsonify({"error": "Thread not found"}), 404
 
 
+@app.route("/config/reload", methods=["POST"])
+def reload_config_endpoint():
+    """POST /config/reload — Reload config.yaml and reset provider without restarting."""
+    denied = _check_auth()
+    if denied:
+        return denied
+    global _config, _provider
+    _config = None
+    _provider = None
+    _config = load_config()
+    return jsonify({"status": "ok", "provider": _config.get("provider")})
+
+
 def run_service(host: str = "127.0.0.1", port: int = 52849):
     global _config, _provider, _start_time
     _start_time = time.time()
