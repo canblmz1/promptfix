@@ -23,9 +23,11 @@ class TestHealthEndpoint:
         assert data["status"] == "ok"
         assert "version" in data
 
-    def test_health_has_cors(self, client):
-        resp = client.get("/health")
-        assert resp.headers.get("Access-Control-Allow-Origin") == "*"
+    def test_health_has_cors_headers(self, client):
+        """CORS method/header fields are always present; Allow-Origin is set only for allowed origins."""
+        resp = client.get("/health", headers={"Origin": "http://127.0.0.1:3000"})
+        assert resp.headers.get("Access-Control-Allow-Origin") == "http://127.0.0.1:3000"
+        assert "Content-Type" in resp.headers.get("Access-Control-Allow-Headers", "")
 
 
 class TestConfigSafeEndpoint:
@@ -103,11 +105,33 @@ class TestOptimizeEndpoint:
         data = resp.get_json()
         assert isinstance(data["valid"], bool)
 
-    def test_cors_preflight(self, client):
-        resp = client.options("/optimize")
+    def test_cors_preflight_from_extension(self, client):
+        resp = client.options(
+            "/optimize",
+            headers={"Origin": "chrome-extension://abcdefg"},
+        )
         assert resp.status_code in (200, 204)
-        assert resp.headers.get("Access-Control-Allow-Origin") == "*"
+        assert resp.headers.get("Access-Control-Allow-Origin") == "chrome-extension://abcdefg"
         assert "POST" in resp.headers.get("Access-Control-Allow-Methods", "")
+
+    def test_cors_blocked_for_unknown_origin(self, client):
+        resp = client.get(
+            "/health",
+            headers={"Origin": "https://evil.example.com"},
+        )
+        assert resp.headers.get("Access-Control-Allow-Origin") != "https://evil.example.com"
+
+    def test_cors_allowed_for_localhost(self, client):
+        resp = client.get(
+            "/health",
+            headers={"Origin": "http://localhost:3000"},
+        )
+        assert resp.headers.get("Access-Control-Allow-Origin") == "http://localhost:3000"
+
+    def test_optimize_text_too_long(self, client):
+        long_text = "a" * 33_000
+        resp = client.post("/optimize", json={"text": long_text, "mode": "short"})
+        assert resp.status_code == 413
 
     @patch("promptfix.service._get_provider")
     @patch("promptfix.service._get_config")
@@ -192,5 +216,55 @@ class TestChatEndpoint:
         assert "threads" in data
 
     def test_delete_nonexistent_thread(self, client):
-        resp = client.delete("/threads/nonexistent")
+        """A valid UUID that doesn't exist returns 404; an invalid ID returns 400."""
+        resp = client.delete("/threads/00000000-0000-4000-8000-000000000000")
         assert resp.status_code == 404
+
+    def test_invalid_thread_id_rejected(self, client):
+        """Thread ID that is not a UUID v4 must return 400."""
+        resp = client.get("/threads/../../etc/passwd")
+        assert resp.status_code in (400, 404)
+
+    @patch("promptfix.service._get_config")
+    def test_history_requires_auth_when_token_set(self, mock_config, client):
+        """GET /history must return 401 when token is configured and missing."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "providers": {"groq": {"model": "test"}},
+            "service": {"token": "secret"},
+        }
+        resp = client.get("/history")
+        assert resp.status_code == 401
+
+    @patch("promptfix.service._get_config")
+    def test_history_delete_requires_auth_when_token_set(self, mock_config, client):
+        """DELETE /history must return 401 when token is configured and missing."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "providers": {"groq": {"model": "test"}},
+            "service": {"token": "secret"},
+        }
+        resp = client.delete("/history")
+        assert resp.status_code == 401
+
+    @patch("promptfix.service._get_config")
+    def test_chat_text_too_long(self, mock_config, client):
+        """Chat endpoint must reject oversized input."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "providers": {"groq": {"model": "test"}},
+            "service": {"token": ""},
+        }
+        resp = client.post("/chat", json={"text": "x" * 33_000})
+        assert resp.status_code == 413
+
+    @patch("promptfix.service._get_config")
+    def test_chat_invalid_thread_id_rejected(self, mock_config, client):
+        """Chat with a non-UUID thread_id must return 400."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "providers": {"groq": {"model": "test"}},
+            "service": {"token": ""},
+        }
+        resp = client.post("/chat", json={"text": "hello", "thread_id": "../../../etc"})
+        assert resp.status_code == 400
