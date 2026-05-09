@@ -19,6 +19,94 @@ app = typer.Typer(name="promptfix", help="Coding-agent prompt rewriter")
 app.add_typer(eval_cli_app, name="eval", help="PromptFix Evaluation Center")
 console = Console()
 
+# ---------------------------------------------------------------------------
+# Provider display names and env-var hints
+# ---------------------------------------------------------------------------
+_PROVIDER_LABELS = {
+    "groq": "Groq (fast, free tier — recommended)",
+    "openai_compatible": "OpenAI-compatible (GPT-4, Claude, etc.)",
+    "ollama": "Ollama (local, no API key needed)",
+}
+_PROVIDER_ENV_VARS = {
+    "groq": "GROQ_API_KEY",
+    "openai_compatible": "OPENAI_API_KEY",
+    "ollama": None,
+}
+
+
+@app.command()
+def init():
+    """Interactive first-time setup wizard — choose a provider and save your API key."""
+    console.print(Panel("[bold green]PromptFix Setup Wizard[/bold green]", expand=False))
+    config = load_config()
+
+    # 1. Provider selection
+    console.print("\n[bold]Which AI provider do you want to use?[/bold]")
+    provider_keys = list(_PROVIDER_LABELS.keys())
+    for i, key in enumerate(provider_keys, 1):
+        console.print(f"  [cyan]{i}[/cyan]. {_PROVIDER_LABELS[key]}")
+
+    choice_raw = console.input("\nEnter number [1]: ").strip() or "1"
+    try:
+        choice = int(choice_raw) - 1
+        if choice < 0 or choice >= len(provider_keys):
+            raise ValueError
+    except ValueError:
+        console.print("[red]Invalid choice. Defaulting to Groq.[/red]")
+        choice = 0
+    provider_name = provider_keys[choice]
+
+    # 2. API key (skip for Ollama)
+    env_var = _PROVIDER_ENV_VARS[provider_name]
+    api_key: str | None = None
+    if env_var:
+        import os
+        existing = os.environ.get(env_var, "")
+        if existing:
+            console.print(f"\n[dim]Found {env_var} in environment — using it.[/dim]")
+        else:
+            console.print(f"\nEnter your [bold]{env_var}[/bold] (input hidden):")
+            api_key = typer.prompt("API key", hide_input=True, default="").strip()
+            if not api_key:
+                console.print("[yellow]No key entered. You can add it later via environment variable.[/yellow]")
+                api_key = None
+
+    # 3. Model selection (optional override)
+    from promptfix.config import DEFAULT_CONFIG
+    default_model = DEFAULT_CONFIG["providers"][provider_name].get("model", "")
+    model_input = console.input(
+        f"\nModel name [[dim]{default_model}[/dim]] (Enter to keep default): "
+    ).strip()
+    model = model_input if model_input else default_model
+
+    # 4. Save config
+    if provider_name not in config.get("providers", {}):
+        config.setdefault("providers", {})[provider_name] = {}
+    config["provider"] = provider_name
+    config["providers"][provider_name]["model"] = model
+    if api_key:
+        config["providers"][provider_name]["api_key"] = api_key
+
+    save_config(config)
+    console.print(f"\n[green]✓[/green] Config saved to [dim]{get_config_path()}[/dim]")
+
+    # 5. Connection test
+    console.print("\n[dim]Testing connection…[/dim]")
+    try:
+        from promptfix.rewriter import create_provider
+        provider = create_provider(config, provider_name)
+        ok, msg = provider.health_check()
+        if ok:
+            console.print(f"[green]✓ {provider_name}: {msg}[/green]")
+        else:
+            console.print(f"[yellow]⚠ {provider_name}: {msg}[/yellow]")
+    except Exception as e:
+        console.print(f"[red]✗ Connection failed: {e}[/red]")
+        console.print("[dim]Check your API key and try again.[/dim]")
+        raise typer.Exit(1)
+
+    console.print("\n[bold green]Setup complete![/bold green] Run [cyan]promptfix service[/cyan] to start.")
+
 
 @app.command()
 def once(

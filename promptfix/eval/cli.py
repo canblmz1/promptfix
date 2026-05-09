@@ -13,15 +13,42 @@ from promptfix.eval.report import print_table, generate_html
 from promptfix.config import load_config
 from promptfix.rewriter import create_provider
 
-app = typer.Typer(help="PromptFix Evaluation Center")
+app = typer.Typer(help="PromptFix Evaluation Center", invoke_without_command=True)
 console = Console()
 
 # Resolve default evals dir relative to the promptfix package
 _DEFAULT_EVAL_DIR = str(Path(promptfix.__file__).parent.parent / "evals")
 
 
-@app.command()
+class _StubProvider:
+    """Deterministic provider used when no API key is available.
+
+    Produces rule-compliant output so the scoring framework can be
+    exercised in CI environments without secrets.
+    """
+
+    model = "stub"
+
+    def complete(self, messages: list[dict]) -> str:
+        from promptfix.guard import get_fallback
+        from promptfix.intent import parse_intent
+        # Pull the user's original text from the last user message
+        user_text = next(
+            (m["content"] for m in reversed(messages) if m["role"] == "user"), ""
+        )
+        intent = parse_intent(user_text)
+        return get_fallback(intent)
+
+    def stream_complete(self, messages: list[dict]):
+        yield self.complete(messages)
+
+    def health_check(self):
+        return True, "stub (no API key -- deterministic fallback mode)"
+
+
+@app.callback(invoke_without_command=True)
 def run(
+    ctx: typer.Context,
     suite: str = typer.Option(_DEFAULT_EVAL_DIR, "--suite", "-s", help="Path to eval suite YAML or directory"),
     judge: bool = typer.Option(False, "--judge", "-j", help="Enable LLM-based judge (slower, costs tokens)"),
     report: str = typer.Option(None, "--report", "-r", help="Generate HTML report to file path"),
@@ -30,13 +57,20 @@ def run(
     threshold: int = typer.Option(75, "--threshold", "-t", help="Minimum passing score (CI mode)"),
 ):
     """Run the PromptFix evaluation suite."""
+    if ctx.invoked_subcommand is not None:
+        return
+
     config = load_config()
 
+    provider = None
     try:
         provider = create_provider(config)
     except RuntimeError as e:
-        console.print(f"[red]Provider error: {e}[/red]")
-        raise typer.Exit(1)
+        if judge:
+            console.print(f"[red]Provider error: {e}[/red]")
+            raise typer.Exit(1)
+        console.print(f"[yellow]WARNING: No provider available ({e.__class__.__name__}). Using deterministic stub -- LLM quality not tested.[/yellow]")
+        provider = _StubProvider()
 
     suite_path = Path(suite)
     if not suite_path.exists():

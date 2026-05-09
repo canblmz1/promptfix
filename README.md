@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-164%20passing-success?style=flat-square&logo=pytest" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-167%20passing-success?style=flat-square&logo=pytest" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/provider-Groq%20%7C%20Ollama%20%7C%20OpenAI-orange?style=flat-square" alt="Providers">
@@ -53,6 +53,8 @@ available, and summarize the root cause, fix, and verification steps.
 | 💬 | **Threaded Chat** | Discord-like chat with streaming, snippets, slash commands |
 | 📊 | **Evaluation Center** | Built-in benchmark suite: 40 tests, rule-based + LLM judge |
 | ⚡ | **Sub-Second Speed** | Groq for speed, Ollama for privacy, OpenAI-compatible for flexibility |
+| 🔁 | **Multi-Provider Fallback** | Automatically retries with other configured providers if the primary fails |
+| 🚦 | **Rate Limiting** | Per-IP request limits on all endpoints (60 req/min for optimize & chat) |
 
 ---
 
@@ -89,7 +91,7 @@ providers:
 ### 3. Run setup
 
 ```bash
-promptfix setup
+promptfix init
 ```
 
 ### 4. Start the local service
@@ -217,6 +219,9 @@ One shared **PromptFix Core** — extension, hotkeys, CLI, and evaluation all us
 ## CLI Reference
 
 ```bash
+# Interactive first-time setup (choose provider, enter API key, test connection)
+promptfix init
+
 # One-shot optimize
 promptfix once "login token bozuldu başka yeri bozma" --mode short
 
@@ -270,6 +275,8 @@ curl -X POST http://127.0.0.1:52849/config/reload
 - Optional service token for extra authentication (`service.token` in config)
 - **Live config reload** — `POST /config/reload` re-reads `~/.promptfix/config.yaml` and resets the provider without restarting the service
 - **Hotkeys are Windows-only** — importing `hotkeys.py` on Linux/macOS no longer crashes; `promptfix tray` exits gracefully with an informative message
+- **Rate limiting** — all endpoints have per-IP rate limits (default 300 req/min globally; `/optimize`, `/chat`, `/chat/stream` capped at 60 req/min; `/history` at 30 req/min; `/config/reload` at 10 req/min)
+- **Multi-provider fallback** — if the primary LLM provider fails, PromptFix automatically tries all other configured providers before raising an error
 - No SaaS backend, no user accounts, no database
 
 ---

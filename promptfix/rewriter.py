@@ -75,6 +75,12 @@ def create_provider(config: dict | None = None, provider_name: str | None = None
         raise RuntimeError(f"Unknown provider: {name}")
 
 
+def _fallback_provider_names(config: dict, primary: str) -> list[str]:
+    """Return providers to try after the primary fails, in config order."""
+    all_providers = list(config.get("providers", {}).keys())
+    return [p for p in all_providers if p != primary]
+
+
 def rewrite(
     text: str,
     mode: str | None = None,
@@ -98,7 +104,35 @@ def rewrite(
     context_lite = build_context(intent, mode, project_hints)
     messages = build_rewrite_prompt(text, intent, context_lite, mode)
 
-    raw_output = provider.complete(messages)
+    # --- Multi-provider fallback ---
+    raw_output: str | None = None
+    last_exc: Exception | None = None
+    tried_providers = [provider_name]
+
+    try:
+        raw_output = provider.complete(messages)
+    except Exception as exc:
+        last_exc = exc
+
+    if raw_output is None:
+        for fallback_name in _fallback_provider_names(config, provider_name):
+            try:
+                fallback_provider = create_provider(config, fallback_name)
+                raw_output = fallback_provider.complete(messages)
+                provider_name = fallback_name  # report which provider actually responded
+                tried_providers.append(fallback_name)
+                last_exc = None
+                break
+            except Exception as exc:
+                tried_providers.append(fallback_name)
+                last_exc = exc
+
+    if raw_output is None:
+        raise RuntimeError(
+            f"All providers failed: {', '.join(tried_providers)}. "
+            f"Last error: {last_exc}"
+        )
+
     cleaned = clean_output(raw_output)
 
     validation = config.get("validation", {})

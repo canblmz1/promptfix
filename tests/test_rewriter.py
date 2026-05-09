@@ -159,3 +159,87 @@ class TestRewrite:
         )
         assert result.mode == "agent"
         assert "Task:" in result.optimized
+
+
+class TestMultiProviderFallback:
+    """F-01: Multi-provider fallback tests."""
+
+    BASE_CONFIG = {
+        "provider": "groq",
+        "default_mode": "short",
+        "validation": {"enabled": False},
+        "providers": {
+            "groq": {
+                "base_url": "https://api.groq.com/openai/v1",
+                "model": "llama-3.3-70b-versatile",
+                "api_key_env": "GROQ_API_KEY",
+                "timeout_seconds": 30,
+            },
+            "ollama": {
+                "base_url": "http://localhost:11434",
+                "model": "qwen2.5:7b",
+                "timeout_seconds": 60,
+            },
+        },
+    }
+
+    def test_fallback_to_secondary_when_primary_fails(self):
+        """If primary provider raises, fallback provider should be used."""
+        primary_mock = MagicMock()
+        primary_mock.complete.side_effect = RuntimeError("groq unavailable")
+
+        fallback_mock = MagicMock()
+        fallback_mock.complete.return_value = "Fix the token refresh bug."
+
+        def _fake_create_provider(config, name=None):
+            if name == "groq" or name is None:
+                return primary_mock
+            return fallback_mock
+
+        with patch("promptfix.rewriter.create_provider", side_effect=_fake_create_provider):
+            result = rewrite(
+                text="fix login bug",
+                mode="short",
+                config=self.BASE_CONFIG,
+                provider=None,
+            )
+        assert "token" in result.optimized.lower() or "bug" in result.optimized.lower()
+        assert result.provider == "ollama"
+
+    def test_all_providers_fail_raises_runtime_error(self):
+        """When every provider fails, RuntimeError is raised listing all tried."""
+        failing_mock = MagicMock()
+        failing_mock.complete.side_effect = RuntimeError("unavailable")
+
+        with patch("promptfix.rewriter.create_provider", return_value=failing_mock):
+            with pytest.raises(RuntimeError, match="groq|ollama"):
+                rewrite(
+                    text="fix login bug",
+                    mode="short",
+                    config=self.BASE_CONFIG,
+                    provider=None,
+                )
+
+    def test_primary_success_no_fallback_called(self):
+        """When primary provider works, no fallback should be invoked."""
+        primary_mock = MagicMock()
+        primary_mock.complete.return_value = "Fix the login token refresh."
+
+        call_log: list[str] = []
+
+        def _fake_create_provider(config, name=None):
+            resolved = name if name is not None else "groq"
+            call_log.append(resolved)
+            return primary_mock  # always primary — fallback should never be created
+
+        with patch("promptfix.rewriter.create_provider", side_effect=_fake_create_provider):
+            result = rewrite(
+                text="fix login bug",
+                mode="short",
+                config=self.BASE_CONFIG,
+                provider=None,
+            )
+        # "ollama" would appear in call_log only if fallback loop triggered
+        assert "ollama" not in call_log, f"Fallback was invoked unexpectedly: {call_log}"
+        assert result.provider == "groq"
+

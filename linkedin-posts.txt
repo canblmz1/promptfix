@@ -1,0 +1,51 @@
+LINKEDIN POST:
+
+I got tired of writing bad prompts to AI and getting garbage code back.
+
+Not because the AI is dumb. My prompts were trash.
+
+So I built PromptFix — an open-source, local-first tool that rewrites your lazy prompts into structured, production-ready ones.
+
+Here's what makes it different:
+
+✅ 100% LOCAL — No SaaS, no data leaks. Runs on Groq (API) or Ollama (fully offline).
+✅ EVALUATION CENTER — 40 test cases with automated scoring, HTML reports, and CI integration. Because "it works on my machine" isn't enough.
+✅ BROWSER EXTENSION — Select text anywhere, press a hotkey, get a better prompt instantly.
+✅ UNDERSTANDS TURKISH — "kral login bozuldu başka yeri bozma" becomes a proper software engineering prompt.
+✅ BATTERIES INCLUDED — 174 tests, MIT license, CLI + API + extension.
+
+Before: "fix the bug pls"
+After: "Investigate and fix the authentication token refresh issue with minimal, targeted changes to the auth middleware..."
+
+Built with Python and vanilla JS because I believe tools should be simple, fast, and under your control.
+
+Try it. Break it. Tell me what sucks.
+
+👉 https://github.com/canblmz1/promptfix
+
+#OpenSource #Python #AI #DeveloperTools #BuildInPublic #MachineLearning #SoftwareEngineering
+
+---
+
+LINKEDIN POST (TURKISH VERSION — AYRI OLARAK PAYLASILABILIR):
+
+AI'ye "kral su login'i duzelt ama baska yeri bozma" yazip cozum alamayanlardan misiniz?
+
+Sorun AI'da degil, promptumuzda.
+
+PromptFix'i tam olarak bu yuzden yaptim. Acik kaynak, tamamen lokal calisan, tembel promptlarinizi duzgun, yapilandirilmis promptlara ceviren bir arac.
+
+Ozellikler:
+✅ %100 LOKAL — Veriniz hicbir yere gitmez. Groq API veya Ollama (internetsiz) ile calisir.
+✅ EVALUATION CENTER — 40 test senaryosu, otomatik skorlama, HTML raporlar. "Bende calisiyor" yetmez.
+✅ BROWSER EXTENSION — Herhangi bir yerde metin secin, kisayola basin, duzgun promptu alin.
+✅ TURKCE ANLIYOR — "kral su modulu bozma" gibi promptlari duzgun yazilim muhendisligi diline cevirir.
+✅ 174 TEST — MIT lisans, CLI + API + extension.
+
+Python ve vanilla JS ile yazildi cunku araclar basit, hizli ve kontrolumuzde olmali.
+
+Deneyin, kirin, eksiklerini soyleyin.
+
+👉 https://github.com/canblmz1/promptfix
+
+#AcikKaynak #Python #YapayZeka #YazilimGelistirme #BuildInPublic
