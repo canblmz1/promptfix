@@ -13,15 +13,16 @@ from promptfix.eval.report import print_table, generate_html
 from promptfix.config import load_config
 from promptfix.rewriter import create_provider
 
-app = typer.Typer(help="PromptFix Evaluation Center")
+app = typer.Typer(help="PromptFix Evaluation Center", invoke_without_command=True)
 console = Console()
 
 # Resolve default evals dir relative to the promptfix package
 _DEFAULT_EVAL_DIR = str(Path(promptfix.__file__).parent.parent / "evals")
 
 
-@app.command()
+@app.callback(invoke_without_command=True)
 def run(
+    ctx: typer.Context,
     suite: str = typer.Option(_DEFAULT_EVAL_DIR, "--suite", "-s", help="Path to eval suite YAML or directory"),
     judge: bool = typer.Option(False, "--judge", "-j", help="Enable LLM-based judge (slower, costs tokens)"),
     report: str = typer.Option(None, "--report", "-r", help="Generate HTML report to file path"),
@@ -30,6 +31,9 @@ def run(
     threshold: int = typer.Option(75, "--threshold", "-t", help="Minimum passing score (CI mode)"),
 ):
     """Run the PromptFix evaluation suite."""
+    if ctx.invoked_subcommand is not None:
+        return
+
     config = load_config()
 
     try:
