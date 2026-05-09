@@ -6,6 +6,8 @@ import re
 import time
 
 from flask import Flask, Response, jsonify, request, stream_with_context
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from promptfix.config import load_config
 from promptfix.rewriter import create_provider, rewrite
@@ -13,6 +15,15 @@ from promptfix.chat_engine import process_message, process_message_stream, get_s
 from promptfix.chat_session import create_thread, load_thread, list_threads, delete_thread
 
 app = Flask(__name__)
+
+# Rate limiter — in-memory, keyed by remote IP.
+# All limits are intentionally generous for a local-only service.
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["300 per minute"],
+    storage_uri="memory://",
+)
 
 _provider = None
 _config = None
@@ -98,6 +109,7 @@ def config_safe():
 
 
 @app.route("/optimize", methods=["POST", "OPTIONS"])
+@limiter.limit("60 per minute", exempt_when=lambda: request.method == "OPTIONS")
 def optimize():
     if request.method == "OPTIONS":
         return "", 204
@@ -125,6 +137,7 @@ def optimize():
 
 
 @app.route("/history", methods=["GET"])
+@limiter.limit("30 per minute")
 def history():
     """Return recent optimization history."""
     denied = _check_auth()
@@ -149,6 +162,7 @@ def clear_history_endpoint():
 # --- Chat endpoints ---
 
 @app.route("/chat", methods=["POST", "OPTIONS"])
+@limiter.limit("60 per minute", exempt_when=lambda: request.method == "OPTIONS")
 def chat_endpoint():
     """POST /chat — Process one message in a thread."""
     if request.method == "OPTIONS":
@@ -202,6 +216,7 @@ def chat_endpoint():
 
 
 @app.route("/chat/stream", methods=["POST", "OPTIONS"])
+@limiter.limit("60 per minute", exempt_when=lambda: request.method == "OPTIONS")
 def chat_stream_endpoint():
     """POST /chat/stream — Stream response using SSE."""
     if request.method == "OPTIONS":

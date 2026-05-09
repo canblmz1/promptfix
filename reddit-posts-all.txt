@@ -1,0 +1,79 @@
+r/SideProject POST (RECOMMENDED — showcase serbest):
+
+Title: I built a free local prompt rewriter — right-click any text, get a better coding prompt
+
+Body:
+I was copy-pasting "fix the thing pls" into ChatGPT and getting garbage code back.
+
+Not because ChatGPT is dumb. My prompt was trash.
+
+So I built PromptFix — a local tool that rewrites your rough coding requests into proper prompts. Select text, hit a hotkey, done.
+
+What makes it different:
+- Runs 100% locally (localhost only, no SaaS)
+- Sub-second with Groq, offline with Ollama
+- Built-in evaluation: 40 test cases that score output quality
+- Browser extension + hotkeys + CLI
+- Understands Turkish slang ("kral login bozuldu" → proper English prompt)
+
+Before/After:
+Input:  login token refresh bozuldu başka yeri bozma
+Output: Investigate and fix the login token refresh with minimal, targeted changes. Inspect the existing auth flow first, avoid unrelated refactors...
+
+Stack: Python + vanilla JS. No React, no Docker.
+
+Repo: https://github.com/canblmz1/promptfix
+
+Feedback welcome — I actually respond to issues.
+
+---
+
+r/LocalLLaMA POST (local AI kitle):
+
+Title: Local prompt rewriter with built-in evaluation — works offline with Ollama
+
+Body:
+Most prompt tools are either SaaS or they just "hope" the output is good. I built one that actually tests itself.
+
+PromptFix runs fully local, works with Ollama (no internet needed), and has a 40-test evaluation suite that scores output quality across bugfix/feature/performance scenarios.
+
+Key points for local AI folks:
+- Default provider is Groq (sub-second) but one config change switches to Ollama
+- All processing happens on your machine
+- Browser extension talks only to localhost
+- No accounts, no tracking, no BS
+
+Repo: https://github.com/canblmz1/promptfix
+
+Curious if the evaluation approach resonates with people here. Most tools just optimize prompts and pray — this one actually validates.
+
+---
+
+r/selfhosted POST (self-hosted kitle):
+
+Title: [OC] PromptFix — local prompt rewriter, zero SaaS dependencies
+
+Body:
+I wanted a prompt tool that never phones home. So I built one.
+
+PromptFix:
+- No cloud service
+- No accounts or API tracking
+- Runs on localhost only
+- Browser extension + CLI
+- Optional: works fully offline with Ollama
+
+Everything stays on your machine. API keys in env vars, not their servers.
+
+Repo: https://github.com/canblmz1/promptfix
+
+If you're self-hosting LLMs already, this plugs right in.
+
+---
+
+POSTING TIPS:
+- r/SideProject: Hafta içi sabah 9-12 EST (en aktif zaman)
+- r/LocalLLaMA: Hafta sonu akşamı daha aktif
+- Her yorumu yanıtla (ilk 2 saat çok önemli)
+- Star isteme, doğal gelsin
+- Biri "cool" derse "ne eklemek isterdin?" diye sor

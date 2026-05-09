@@ -1,0 +1,78 @@
+SEN BIR SENIOR FULL-STACK DEVELOPER VE PROJE MENTORUSUN. SANA YAPACAGIM PROJEYI ANLATIYORUM, BANA ADIM ADIM REHBERLIK ET. TEK SORU SOR, TEK CEVAP VER. NET OL.
+
+=== PROJE: AI CONTENT FACTORY (WEB UI) ===
+
+Amac: Teknoloji / AI icerigi ureten yuzsuz (faceless) kanallar icin tam otomatik icerik fabrikasi.
+
+Web arayuzu olacak. Sekmeler: YouTube | YouTube Shorts | Instagram | TikTok | Twitter/X
+
+Kullanici olarak BENIM yapmam gerekenler:
+1. Uygulamayi ac
+2. "Kanal Isimlerini Belirle" butonuna bas -> SEN (ChatGPT) isimleri uret, ben onaylarim
+3. Her gun uygulama otomatik olarak:
+   - Gunun AI/Teknoloji trend konusunu bulur (internetten)
+   - Her platform icin optimize edilmis icerik uretir
+   - Video (ses + gorsel + montaj + altyazi) otomatik olusturur
+   - Thumbnail uretir
+   - Post metinlerini (caption, thread, description) yazar
+4. Ben sadece "Upload" butonuna basarim. Upload ettiklerim listede gorunur, silebilirim.
+5. YouTube Shorts icin ozel telif korumasi olmali. Icerikler telif yemeyecek sekilde uretilmeli.
+
+Kullanici sadece upload edecek, baska hicbir sey yapmayacak.
+
+=== SENDEN ISTEDIKLERIM ===
+
+1. TEKNOLOJI STACK ONERISI:
+   - Web UI icin ne kullanayim? (React, Vue, plain HTML/JS?)
+   - Backend icin ne kullanayim? (Python Flask, Node.js, Django?)
+   - Video uretimi icin ne kullanayim? (MoviePy, Remotion, FFmpeg?)
+   - Ses (TTS) icin ne kullanayim? (Edge-TTS, ElevenLabs, gTTS?)
+   - AI modeli icin ne kullanayim? (OpenAI GPT-4o-mini, Claude, local?)
+   - Trend cekme icin ne kullanayim? (Python scraper, RSS, API?)
+   - Database icin ne kullanayim? (SQLite, JSON, PostgreSQL?)
+   Her secenek icin: Neden bu? Bedava mi? Maliyeti ne?
+
+2. MALIYET ANALIZI:
+   - Aylik toplam maliyeti hesapla (API, hosting, diger)
+   - Minimum maliyetli stack oner
+
+3. PROJE YAPISI (KLASOR YAPISI):
+   - Klasor klasor ne olacagini ciz
+   - Her dosyanin gorevi ne?
+
+4. ADIM ADIM YAPIM PLANI:
+   - Adim 1: Ne yapmaliyim?
+   - Adim 2: Ne yapmaliyim?
+   - ... (10 adima kadar)
+
+5. KANAL ISIMLENDIRME:
+   - Teknoloji/AI icerigi icin ornek kanal isimleri uret:
+     * Instagram: @...
+     * TikTok: @...
+     * Twitter: @...
+     * YouTube: ...
+   - Turkce ve Ingilizce karisik icerik uretecegim.
+
+6. TELIF STRATEJISI:
+   - YouTube Shorts'ta telif yememek icin hangi ses/goruntu kaynaklarini kullanmaliyim?
+   - AI uretimi gorseller telif yemez mi?
+   - Telifsiz muzik nereden bulurum?
+
+7. KOD ORNEKLERI:
+   - Flask baslangic kodu (hello world seviyesinde)
+   - OpenAI API ile basit bir icerik uretim ornegi
+   - Edge-TTS ile ses uretim ornegi
+   - MoviePy ile basit video montaj ornegi
+
+8. BEDAVA ALTERNATIFLER:
+   - Her bilesenin %100 bedava alternatifi var mi?
+   - Local calistirma mumkun mu? (internetsiz/local LLM)
+
+=== KURALLAR ===
+- Turkce cevap ver.
+- Teknik jargon kullan ama anlasilir ol.
+- "Su en iyisidir" demek yerine "Sunu kullan cunku..." seklinde gerekce goster.
+- Bolum bolum, numaralandirilmis yaz.
+- Gereksiz uzunlama. Bilgi yogun ama oz ol.
+
+Hazirsan basla. Once 1. maddeyi (Teknoloji Stack) anlat.

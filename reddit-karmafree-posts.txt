@@ -1,0 +1,134 @@
+REDDIT KARMA-FREE SUB POSTS:
+
+=== r/shamelessplug ===
+Title: PromptFix — Open-source local prompt rewriter with evaluation center
+
+Body:
+I got tired of writing garbage prompts and getting garbage code back, so I built PromptFix.
+
+It's a 100% open-source, local-first tool that rewrites your lazy prompts into structured, production-ready ones.
+
+Key features:
+- Runs locally (Ollama) or via Groq API — your data never leaves your machine
+- Built-in evaluation center with 40 test cases and HTML reports
+- Browser extension with hotkeys
+- Understands Turkish prompts
+- 174 tests, MIT license
+
+Demo:
+"kral login bozuldu başka yeri bozma" → "Investigate and fix the login token refresh with minimal, targeted changes..."
+
+Repo: https://github.com/canblmz1/promptfix
+
+Feedback welcome!
+
+---
+
+=== r/IMadeThis ===
+Title: [Python/JS] I made a local prompt rewriter that turns "fix the bug pls" into production-ready prompts
+
+Body:
+I kept getting Frankenstein code from ChatGPT because my prompts were trash. So I built PromptFix — an open-source tool that fixes them automatically.
+
+What it does:
+- Rewrites vague/short prompts into structured, scoped prompts
+- Runs 100% locally (Ollama) or via Groq API
+- Has an evaluation center with 40 automated tests
+- Includes a browser extension + hotkeys
+- Understands Turkish slang
+
+Before/After:
+"fix the bug pls" → "Investigate and fix the identified bug with minimal, targeted changes. Inspect the surrounding code first, avoid unrelated refactors..."
+
+Tech: Python + vanilla JS. 174 tests. MIT license.
+
+https://github.com/canblmz1/promptfix
+
+Let me know what you think!
+
+---
+
+=== r/coolgithubprojects ===
+Title: PromptFix — Local prompt rewriter with built-in evaluation suite
+
+Body:
+GitHub: https://github.com/canblmz1/promptfix
+
+PromptFix is an open-source tool that rewrites bad prompts into structured ones. It's designed for developers who want better AI outputs without sending their data to a SaaS.
+
+Highlights:
+- 100% local execution option (Ollama)
+- Evaluation center: 40 tests, HTML reports, CI integration
+- Browser extension with global hotkeys
+- Turkish prompt support
+- 174 tests, MIT license
+
+Example:
+Input: "kral su login'i duzelt ama baska yeri bozma"
+Output: "Investigate and fix the login issue with minimal, targeted changes to the authentication flow..."
+
+Check it out and give it a star if you find it useful!
+
+---
+
+=== r/Python ===
+(Bu sub'da denenebilir ama dikkatli ol, kurallari oku)
+Title: PromptFix — A Python CLI tool that rewrites prompts and evaluates them with 40 test cases
+
+Body:
+I built PromptFix, a Python CLI that rewrites vague prompts into structured ones using LLMs (Groq/Ollama).
+
+What makes it interesting for Python devs:
+- 40 automated eval cases with YAML config
+- Custom evaluation engine with rule-based + LLM judge scoring
+- Rich terminal reports + HTML report generation
+- CI-ready with `promptfix eval run --ci --threshold 0.85`
+- 174 pytest tests
+
+Example:
+```bash
+promptfix rewrite "fix the bug pls"
+# Output: structured, scoped prompt with context
+
+promptfix eval run --report
+# Output: HTML report with pass/fail for all 40 cases
+```
+
+Repo: https://github.com/canblmz1/promptfix
+
+MIT licensed. Contributions welcome!
+
+---
+
+=== r/SideProject ===
+(Karma gerekebilir ama denenebilir)
+Title: Side Project: Open-source prompt rewriter with evaluation center
+
+Body:
+I've been working on PromptFix — a side project that rewrites bad AI prompts into good ones, locally.
+
+It's open-source, MIT licensed, and has a built-in evaluation suite so you know it actually works.
+
+What it does:
+- Takes your lazy prompt ("fix the bug pls")
+- Rewrites it into a structured, scoped prompt
+- Evaluates the output against 40 test cases
+- Gives you an HTML report
+
+Tech: Python backend, vanilla JS browser extension.
+
+Runs on Groq API or fully offline with Ollama.
+
+Repo: https://github.com/canblmz1/promptfix
+
+Would love feedback from fellow side project builders!
+
+---
+
+POSTING STRATEGY:
+1. Once per sub, spread across days (don't spam)
+2. Respond to every comment immediately (engagement = upvotes)
+3. If a post gets traction, crosspost to related subs
+4. Keep titles under 120 characters for mobile
+5. Include a clear before/after example in the body
+6. End with a question to encourage comments
