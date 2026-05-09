@@ -118,7 +118,9 @@ def validate_output(output: str, intent: Intent) -> GuardResult:
 def get_fallback(intent: Intent) -> str:
     topic = _extract_topic(intent)
     template = FALLBACKS.get(intent.task_type, FALLBACKS["unknown"])
-    return template.format(topic=topic)
+    # Use str.replace instead of str.format to avoid KeyError if topic contains
+    # brace characters from user input (e.g. "{something}").
+    return template.replace("{topic}", topic)
 
 
 def _extract_topic(intent: Intent) -> str:

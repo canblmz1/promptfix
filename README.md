@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-160%20passing-success?style=flat-square&logo=pytest" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-164%20passing-success?style=flat-square&logo=pytest" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/provider-Groq%20%7C%20Ollama%20%7C%20OpenAI-orange?style=flat-square" alt="Providers">
@@ -242,6 +242,9 @@ promptfix provider doctor groq
 # Debug tools
 promptfix debug-intent "login token refresh bozuldu"
 promptfix debug-rewrite "login token refresh bozuldu" --mode agent
+
+# Reload config without restarting
+curl -X POST http://127.0.0.1:52849/config/reload
 ```
 
 ---
@@ -265,6 +268,8 @@ promptfix debug-rewrite "login token refresh bozuldu" --mode agent
 - **All endpoints protected** by the optional service token (`service.token` in config) — including `/history`, `/threads`, `/chat`, and `/suggestions`
 - **Thread IDs validated** as UUID v4 on every endpoint — path-traversal attempts are rejected with HTTP 400
 - Optional service token for extra authentication (`service.token` in config)
+- **Live config reload** — `POST /config/reload` re-reads `~/.promptfix/config.yaml` and resets the provider without restarting the service
+- **Hotkeys are Windows-only** — importing `hotkeys.py` on Linux/macOS no longer crashes; `promptfix tray` exits gracefully with an informative message
 - No SaaS backend, no user accounts, no database
 
 ---

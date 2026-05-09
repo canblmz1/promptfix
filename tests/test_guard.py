@@ -150,3 +150,16 @@ class TestFallback:
         intent = parse_intent("do something with the code")
         fallback = get_fallback(intent)
         assert "Investigate" in fallback
+
+    def test_fallback_topic_with_braces_does_not_raise(self):
+        """Topic containing brace characters from user input must not raise KeyError."""
+        intent = parse_intent("fix {unknown_key} in the auth module")
+        fallback = get_fallback(intent)
+        assert isinstance(fallback, str)
+        assert len(fallback) > 0
+
+    def test_fallback_topic_with_format_spec_does_not_raise(self):
+        """Topic with Python format-spec-like content must not raise."""
+        intent = parse_intent("fix {0!r} edge case başka yeri bozma")
+        fallback = get_fallback(intent)
+        assert isinstance(fallback, str)
