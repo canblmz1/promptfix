@@ -141,7 +141,7 @@ def load_thread(thread_id: str) -> ChatThread | None:
 def create_thread(mode: str = "short", provider: str = "groq", title: str = "Untitled") -> ChatThread:
     now = time.strftime("%Y-%m-%dT%H:%M:%S")
     thread = ChatThread(
-        id=str(uuid.uuid4())[:8],
+        id=str(uuid.uuid4()),
         title=title,
         created_at=now,
         updated_at=now,
