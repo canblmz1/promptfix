@@ -127,7 +127,8 @@ def once(
     config = load_config()
     try:
         result = rewrite(text=text, mode=mode, config=config)
-        console.print(Panel(result.optimized, title=f"[green]{result.mode}[/green] | {result.provider} | {result.duration_ms}ms | {result.validation_status}"))
+        score_str = f" | Q:{result.quality_score}" if result.quality_score is not None else ""
+        console.print(Panel(result.optimized, title=f"[green]{result.mode}[/green] | {result.provider} | {result.duration_ms}ms | {result.validation_status}{score_str}"))
     except RuntimeError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -536,6 +537,34 @@ def debug_guard(text: str = typer.Argument(..., help="Output text to validate"))
         for r in result.reasons:
             console.print(f"  - {r}")
     console.print(f"Cleaned: {cleaned[:200]}")
+
+
+@app.command()
+def score(
+    text: str = typer.Argument(..., help="Rewritten prompt text to score"),
+    mode: str = typer.Option("short", "--mode", "-m", help="Mode the text was written for"),
+    intent_text: str = typer.Option("fix a bug", "--intent", help="Original intent text for alignment scoring"),
+):
+    """Score a rewritten prompt on 5 quality dimensions (0-100)."""
+    from promptfix.scorer import score_output
+    from promptfix.intent import parse_intent
+
+    intent = parse_intent(intent_text)
+    result = score_output(text, intent, mode)
+
+    grade_color = {"A": "green", "B": "cyan", "C": "yellow", "D": "yellow", "F": "red"}.get(result.grade, "white")
+    console.print(f"\n[bold]Quality Score: [{grade_color}]{result.total}/100 ({result.grade})[/{grade_color}][/bold]\n")
+
+    for dim, val in result.breakdown.items():
+        bar = "█" * val + "░" * (20 - val)
+        color = "green" if val >= 15 else "yellow" if val >= 8 else "red"
+        console.print(f"  [{color}]{bar}[/{color}] {val:2d}/20  {dim}")
+
+    if result.suggestions:
+        console.print("\n[bold]Suggestions:[/bold]")
+        for s in result.suggestions:
+            console.print(f"  • {s}")
+    console.print()
 
 
 if __name__ == "__main__":
