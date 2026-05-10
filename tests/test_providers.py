@@ -32,7 +32,7 @@ class TestGroqProvider:
             assert provider.model == "llama-3.3-70b-versatile"
             assert provider.api_key == "test-key"
 
-    @patch("promptfix.providers.groq.requests.post")
+    @patch("promptfix.providers.base.requests.post")
     def test_complete_success(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -51,7 +51,7 @@ class TestGroqProvider:
             result = provider.complete([{"role": "user", "content": "test"}])
             assert result == "Optimized prompt here"
 
-    @patch("promptfix.providers.groq.requests.post")
+    @patch("promptfix.providers.base.requests.post")
     def test_complete_unauthorized(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 401
@@ -67,7 +67,7 @@ class TestGroqProvider:
             with pytest.raises(RuntimeError, match="unauthorized"):
                 provider.complete([{"role": "user", "content": "test"}])
 
-    @patch("promptfix.providers.groq.requests.post")
+    @patch("promptfix.providers.base.requests.post")
     def test_stream_complete(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -131,7 +131,7 @@ class TestOpenAICompatibleProvider:
                     api_key_env="OPENAI_API_KEY",
                 )
 
-    @patch("promptfix.providers.openai_compatible.requests.post")
+    @patch("promptfix.providers.base.requests.post")
     def test_stream_complete(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200

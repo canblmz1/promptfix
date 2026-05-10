@@ -323,6 +323,9 @@ def _handle_command(thread: ChatThread, text: str, config: dict) -> ChatResult:
     elif cmd == "snippet":
         return _handle_snippet_command(thread, arg)
 
+    elif cmd == "preset":
+        return _handle_preset_command(thread, arg, config)
+
     elif cmd == "help":
         help_text = """\
 **PromptFix Chat Commands**
@@ -338,6 +341,8 @@ def _handle_command(thread: ChatThread, text: str, config: dict) -> ChatResult:
 `/snippet list` — List saved snippets
 `/snippet use <name>` — Insert a snippet
 `/snippet delete <name>` — Delete a snippet
+`/preset list` — List available presets
+`/preset use <name>` — Apply a preset to next message
 `/help` — Show this help
 
 **Snippets:**
@@ -448,6 +453,46 @@ def _handle_snippet_command(thread: ChatThread, arg: str) -> ChatResult:
             thread.current_mode,
             "error",
         )
+
+
+def _handle_preset_command(thread: ChatThread, arg: str, config: dict) -> ChatResult:
+    """Handle /preset subcommands."""
+    from promptfix.presets import list_presets, get_preset
+
+    parts = arg.strip().split(maxsplit=1)
+    if not parts or parts[0].lower() == "list":
+        presets = list_presets()
+        lines = ["Available presets:\n"]
+        for pname, pdesc, source in presets:
+            tag = "(builtin)" if source == "builtin" else "(user)"
+            lines.append(f"  **{pname}** {tag} — {pdesc}")
+        lines.append("\nUse `/preset use <name>` then send your text.")
+        return ChatResult("\n".join(lines), thread.current_mode, "command")
+
+    subcmd = parts[0].lower()
+    rest = parts[1] if len(parts) > 1 else ""
+
+    if subcmd == "use":
+        name = rest.strip()
+        preset = get_preset(name)
+        if not preset:
+            return ChatResult(
+                f"Preset not found: {name}. Use `/preset list` to see available presets.",
+                thread.current_mode,
+                "error",
+            )
+        thread.pending_preset = name  # type: ignore[attr-defined]
+        return ChatResult(
+            f"Preset **{name}** armed. Send your text and it will be applied.",
+            thread.current_mode,
+            "command",
+        )
+
+    return ChatResult(
+        f"Unknown preset command: {subcmd}. Use list or use.",
+        thread.current_mode,
+        "error",
+    )
 
 
 def get_suggestions(text: str, thread: ChatThread, limit: int = 5) -> list[dict[str, str]]:
