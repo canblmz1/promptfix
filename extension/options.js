@@ -1,19 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.sync.get(
-    { serviceUrl: "http://127.0.0.1:52849", serviceToken: "" },
-    (items) => {
-      document.getElementById("serviceUrl").value = items.serviceUrl;
-      document.getElementById("serviceToken").value = items.serviceToken;
-    }
-  );
+  chrome.storage.sync.get({ serviceUrl: "http://127.0.0.1:52849" }, (syncItems) => {
+    document.getElementById("serviceUrl").value = syncItems.serviceUrl;
+  });
+  chrome.storage.local.get({ serviceToken: "" }, (localItems) => {
+    document.getElementById("serviceToken").value = localItems.serviceToken;
+  });
 });
 
 document.getElementById("save").addEventListener("click", () => {
   const serviceUrl = document.getElementById("serviceUrl").value.trim();
   const serviceToken = document.getElementById("serviceToken").value.trim();
-  chrome.storage.sync.set({ serviceUrl, serviceToken }, () => {
-    document.getElementById("status").textContent = "Saved!";
-    document.getElementById("status").style.color = "#4ade80";
+  chrome.storage.sync.set({ serviceUrl }, () => {
+    chrome.storage.local.set({ serviceToken }, () => {
+      document.getElementById("status").textContent = "Saved!";
+      document.getElementById("status").style.color = "#4ade80";
+    });
   });
 });
 

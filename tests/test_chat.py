@@ -357,3 +357,38 @@ class TestSuggestions:
         thread.add_message("user", "fix login bug")
         suggestions = get_suggestions("fix", thread)
         assert any(s["type"] == "history" for s in suggestions)
+
+
+class TestConfigSaveChmod:
+    def test_save_config_creates_file(self, tmp_path, monkeypatch):
+        """save_config must write a yaml file."""
+        import promptfix.config as cfg_mod
+        monkeypatch.setattr(cfg_mod, "get_config_path", lambda: tmp_path / "config.yaml")
+        cfg_mod.save_config({"provider": "groq"})
+        assert (tmp_path / "config.yaml").exists()
+
+    def test_save_config_chmod_unix(self, tmp_path, monkeypatch):
+        """On non-Windows platforms, save_config must call chmod(0o600) on the config file."""
+        import stat
+        import promptfix.config as cfg_mod
+        from unittest.mock import patch, MagicMock
+
+        config_path = tmp_path / "config.yaml"
+        monkeypatch.setattr(cfg_mod, "get_config_path", lambda: config_path)
+
+        chmod_calls = []
+        original_chmod = cfg_mod.Path.chmod
+
+        def capture_chmod(self, mode):
+            chmod_calls.append((str(self), mode))
+
+        with patch.object(cfg_mod.Path, "chmod", capture_chmod):
+            # Simulate non-Windows by patching sys.platform
+            import sys as _sys
+            with patch.object(_sys, "platform", "linux"):
+                cfg_mod.save_config({"provider": "groq"})
+
+        assert any(
+            mode == (stat.S_IRUSR | stat.S_IWUSR)
+            for _, mode in chmod_calls
+        ), f"Expected chmod(0o600) call but got: {chmod_calls}"

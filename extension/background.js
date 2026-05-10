@@ -97,10 +97,11 @@ function sendToTab(tabId, message) {
 // --- Call the local PromptFix service ---
 
 async function callService(text, mode) {
-  const settings = await chrome.storage.sync.get({
-    serviceUrl: SERVICE_URL_DEFAULT,
-    serviceToken: "",
-  });
+  const [syncItems, localItems] = await Promise.all([
+    chrome.storage.sync.get({ serviceUrl: SERVICE_URL_DEFAULT }),
+    chrome.storage.local.get({ serviceToken: "" }),
+  ]);
+  const settings = { serviceUrl: syncItems.serviceUrl, serviceToken: localItems.serviceToken };
 
   const baseUrl = settings.serviceUrl.replace(/\/+$/, "");
   const url = `${baseUrl}/optimize`;
