@@ -92,10 +92,14 @@ def load_config() -> dict[str, Any]:
 
 
 def save_config(config: dict[str, Any]) -> None:
+    import sys
     path = get_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    if sys.platform != "win32":
+        import stat
+        path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
 
 def ensure_config() -> dict[str, Any]:

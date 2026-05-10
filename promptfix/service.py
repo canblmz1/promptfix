@@ -152,6 +152,7 @@ def history():
 
 
 @app.route("/history", methods=["DELETE"])
+@limiter.limit("10 per minute")
 def clear_history_endpoint():
     denied = _check_auth()
     if denied:

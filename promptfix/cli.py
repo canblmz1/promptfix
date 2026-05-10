@@ -79,7 +79,17 @@ def init():
     ).strip()
     model = model_input if model_input else default_model
 
-    # 4. Save config
+    # 4. Generate service token
+    import secrets
+    existing_token = config.get("service", {}).get("token", "")
+    if not existing_token:
+        token = secrets.token_hex(16)
+        config.setdefault("service", {})["token"] = token
+        console.print(f"\n[bold yellow]Service token (copy to extension settings):[/bold yellow] [cyan]{token}[/cyan]")
+    else:
+        console.print(f"\n[dim]Existing service token kept.[/dim]")
+
+    # 5. Save config
     if provider_name not in config.get("providers", {}):
         config.setdefault("providers", {})[provider_name] = {}
     config["provider"] = provider_name
@@ -88,7 +98,7 @@ def init():
         config["providers"][provider_name]["api_key"] = api_key
 
     save_config(config)
-    console.print(f"\n[green]✓[/green] Config saved to [dim]{get_config_path()}[/dim]")
+    console.print(f"[green]✓[/green] Config saved to [dim]{get_config_path()}[/dim]")
 
     # 5. Connection test
     console.print("\n[dim]Testing connection…[/dim]")
@@ -163,6 +173,14 @@ def chat(
 
     # Load or create thread
     if thread_id:
+        import re as _re
+        _UUID_RE = _re.compile(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            _re.IGNORECASE,
+        )
+        if not _UUID_RE.match(thread_id):
+            console.print(f"[red]Invalid thread ID (must be UUID v4): {thread_id}[/red]")
+            raise typer.Exit(1)
         thread = load_thread(thread_id)
         if not thread:
             console.print(f"[red]Thread not found: {thread_id}[/red]")
