@@ -80,6 +80,23 @@ BUILTIN_PRESETS: dict[str, dict[str, str]] = {
             "Group by severity. Suggest concrete improvements."
         ),
     },
+    "agent-safety-checklist": {
+        "description": "Safe coding-agent task: read first, plan, minimal changes, verify",
+        "mode": "agent",
+        "system_hint": (
+            "SAFETY CHECKLIST — the agent MUST follow this order:\n"
+            "1. READ relevant files before writing any code.\n"
+            "2. PLAN: produce a short bullet-point plan before implementing.\n"
+            "3. CHANGE only the minimum files necessary. Do not touch unrelated code.\n"
+            "4. PROTECT secrets, API keys, environment variables, and production config — "
+            "never modify them.\n"
+            "5. NO large refactors unless explicitly requested.\n"
+            "6. FLAG any database migration, breaking API change, or dependency upgrade "
+            "explicitly before proceeding.\n"
+            "7. RUN existing tests (or the project's test command) after the change.\n"
+            "8. REPORT: list changed files, test outcome, and any identified risks."
+        ),
+    },
 }
 
 # ---------------------------------------------------------------------------

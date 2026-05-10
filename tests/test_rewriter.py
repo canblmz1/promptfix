@@ -306,3 +306,117 @@ class TestMultiProviderFallback:
             "If count is 1, retry went to the broken primary instead."
         )
         assert result.provider == "ollama"
+
+
+class TestScoreBreakdown:
+    """score_breakdown is populated in RewriteResult and to_dict()."""
+
+    def test_score_breakdown_in_result(self):
+        mock_provider = MagicMock()
+        mock_provider.complete.return_value = (
+            "Investigate and fix the login token refresh issue "
+            "with minimal, targeted changes. Verify with tests."
+        )
+        config = {
+            "provider": "groq",
+            "default_mode": "short",
+            "validation": {"enabled": False},
+        }
+        result = rewrite(
+            text="login token refresh bozuldu",
+            mode="short",
+            config=config,
+            provider=mock_provider,
+        )
+        assert result.score_breakdown is not None
+        assert "total" in result.score_breakdown
+        assert "grade" in result.score_breakdown
+        assert "breakdown" in result.score_breakdown
+        assert "suggestions" in result.score_breakdown
+
+    def test_score_breakdown_in_to_dict(self):
+        mock_provider = MagicMock()
+        mock_provider.complete.return_value = (
+            "Fix the login bug with minimal targeted changes."
+        )
+        config = {
+            "provider": "groq",
+            "default_mode": "short",
+            "validation": {"enabled": False},
+        }
+        result = rewrite(
+            text="fix login",
+            mode="short",
+            config=config,
+            provider=mock_provider,
+        )
+        d = result.to_dict()
+        assert "score_breakdown" in d
+        assert "quality_score" in d  # backward compat
+        assert d["quality_score"] == d["score_breakdown"]["total"]
+
+    def test_quality_score_matches_breakdown_total(self):
+        mock_provider = MagicMock()
+        mock_provider.complete.return_value = (
+            "Investigate and fix the auth issue with minimal changes."
+        )
+        config = {
+            "provider": "groq",
+            "default_mode": "short",
+            "validation": {"enabled": False},
+        }
+        result = rewrite(
+            text="fix auth bug",
+            mode="short",
+            config=config,
+            provider=mock_provider,
+        )
+        assert result.quality_score == result.score_breakdown["total"]
+
+
+class TestAgentSafetyPreset:
+    """Agent Safety Checklist preset is in the built-in preset list."""
+
+    def test_preset_exists_in_list(self):
+        from promptfix.presets import list_presets
+        names = [name for name, _, _ in list_presets()]
+        assert "agent-safety-checklist" in names, (
+            f"'agent-safety-checklist' not found in presets: {names}"
+        )
+
+    def test_preset_has_required_fields(self):
+        from promptfix.presets import get_preset
+        preset = get_preset("agent-safety-checklist")
+        assert preset is not None
+        assert "description" in preset
+        assert "mode" in preset
+        assert "system_hint" in preset
+
+    def test_preset_mode_is_agent(self):
+        from promptfix.presets import get_preset
+        preset = get_preset("agent-safety-checklist")
+        assert preset["mode"] == "agent"
+
+    def test_preset_hint_contains_safety_keywords(self):
+        from promptfix.presets import get_preset
+        preset = get_preset("agent-safety-checklist")
+        hint = preset["system_hint"].lower()
+        # Must mention key safety concepts
+        assert "read" in hint or "files" in hint
+        assert "plan" in hint or "before" in hint
+        assert "minimal" in hint or "minimum" in hint
+        assert "secret" in hint or "api key" in hint or "protect" in hint
+        assert "test" in hint or "run" in hint
+        assert "report" in hint or "list" in hint or "changed" in hint
+
+    def test_all_builtin_presets_still_present(self):
+        """Ensure existing presets were not removed."""
+        from promptfix.presets import list_presets
+        names = {name for name, _, _ in list_presets()}
+        expected = {
+            "bugfix-minimal", "perf-audit", "security-review",
+            "feature-spec", "test-coverage", "refactor-safe",
+            "deploy-checklist", "code-review",
+        }
+        missing = expected - names
+        assert not missing, f"These presets were removed: {missing}"

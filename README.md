@@ -50,8 +50,10 @@ available, and summarize the root cause, fix, and verification steps.
 | 🔄 | **One-Click Rewrite** | Right-click menu + global hotkeys (Windows) |
 | 🧠 | **Intent Detection** | Auto-detects bugfix/feature/performance/review in Turkish & English |
 | 🛡️ | **Output Guard** | Validates output, retries on failure, deterministic fallback |
+| � | **Quality Score** | Heuristic 0-100 score with breakdown: specificity, actionability, safety, and more |
+| 🔀 | **Before/After Diff** | See exactly what changed between your original and the optimized prompt |
 | 💬 | **Threaded Chat** | Discord-like chat with streaming, snippets, slash commands |
-| 📊 | **Evaluation Center** | Built-in benchmark suite: 40 tests, rule-based + LLM judge |
+| 🧪 | **Evaluation Center** | Built-in benchmark suite: 40 tests, rule-based + LLM judge |
 | ⚡ | **Sub-Second Speed** | Groq for speed, Ollama for privacy, OpenAI-compatible for flexibility |
 | 🔁 | **Multi-Provider Fallback** | Automatically retries with other configured providers if the primary fails |
 | 🚦 | **Rate Limiting** | Per-IP request limits on all endpoints (60 req/min for optimize & chat) |
@@ -198,6 +200,120 @@ promptfix eval --suite evals/my-suite.yaml
 
 ---
 
+## Before / After Diff
+
+See exactly what changed between your original prompt and the optimized version.
+
+```bash
+# Show colored diff in the terminal
+promptfix once "kral login token refresh bozuldu başka yeri bozma" --diff
+```
+
+Sample output:
+```
+--- original
++++ optimized
+-kral login token refresh bozuldu başka yeri bozma
++Investigate and fix the login token refresh issue with minimal, targeted changes.
++Inspect the existing auth/session/token refresh flow first, avoid unrelated refactors,
++run relevant tests if available, and summarize the root cause, fix, and verification steps.
+```
+
+Via the API:
+```json
+POST /optimize
+{ "text": "fix login bug", "mode": "short", "include_diff": true }
+```
+
+Response includes a `diff` object:
+```json
+{
+  "optimized": "Investigate and fix the login...",
+  "diff": {
+    "unified": "--- original\n+++ optimized\n...",
+    "unchanged": false
+  }
+}
+```
+
+---
+
+## Quality Score
+
+Every rewrite is automatically scored on 5 dimensions (0–20 each, total 0–100):
+
+| Dimension | What it checks |
+|---|---|
+| **specificity** | Concrete action verbs vs. vague filler |
+| **conciseness** | Word count in ideal range for the mode |
+| **actionability** | Deliverable / verification signals present |
+| **safety** | No conversational openers or broadening words |
+| **intent_alignment** | Output reflects detected task type and domain |
+
+```bash
+# Show score breakdown in terminal
+promptfix once "login token bozuldu başka yeri bozma" --score
+```
+
+Sample output:
+```
+ Quality Score Breakdown
+┌─────────────────┬───────┬─────┐
+│ Dimension       │ Score │ Max │
+├─────────────────┼───────┼─────┤
+│ specificity     │  16   │  20 │
+│ conciseness     │  20   │  20 │
+│ actionability   │  15   │  20 │
+│ safety          │  20   │  20 │
+│ intent_alignment│  16   │  20 │
+│ TOTAL           │  87   │ 100 │
+└─────────────────┴───────┴─────┘
+Grade: A
+```
+
+The API always returns `score_breakdown` in the `/optimize` response:
+```json
+{
+  "optimized": "...",
+  "quality_score": 87,
+  "score_breakdown": {
+    "total": 87,
+    "grade": "A",
+    "breakdown": { "specificity": 16, "conciseness": 20, ... },
+    "suggestions": []
+  }
+}
+```
+
+---
+
+## Agent Safety Checklist
+
+Use the `agent-safety-checklist` preset to generate prompts that enforce safe coding-agent behavior:
+
+- Read relevant files before writing code
+- Produce a short plan before implementing
+- Change only the minimum files necessary
+- Never touch secrets, API keys, or production config
+- Flag database migrations and breaking changes explicitly
+- Run existing tests after the change
+- Report changed files, test outcome, and risks
+
+```bash
+# Via CLI preset
+promptfix preset use agent-safety-checklist "deploy the new payment service"
+
+# In chat
+/preset agent-safety-checklist
+
+# With text flag
+promptfix preset use agent-safety-checklist --text "login token refresh bozuldu başka yeri bozma"
+```
+
+This is the safest mode for giving tasks to AI coding agents in critical codebases.
+
+---
+
 ## Architecture
 
 ```
@@ -224,6 +340,15 @@ promptfix init
 
 # One-shot optimize
 promptfix once "login token bozuldu başka yeri bozma" --mode short
+
+# One-shot with diff view
+promptfix once "login token bozuldu başka yeri bozma" --diff
+
+# One-shot with quality score breakdown
+promptfix once "login token bozuldu başka yeri bozma" --score
+
+# Combine both
+promptfix once "login token bozuldu başka yeri bozma" --diff --score
 
 # Start local service
 promptfix service

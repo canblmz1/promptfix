@@ -1,0 +1,61 @@
+suite: agent-safety-checklist
+language: en
+description: Agent Safety Checklist preset — verifies safe task instructions are generated
+
+tests:
+  - name: "Safety checklist — auth bugfix"
+    input: "fix the login token refresh bug"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["minimal", "targeted"]
+      - type: intent_match
+        task_type: bugfix
+        domain: auth
+      - type: no_fences
+      - type: not_empty
+
+  - name: "Safety checklist — deployment task"
+    input: "deploy the new payment service to production"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["check", "verify"]
+      - type: intent_match
+        task_type: feature
+        domain: deploy
+      - type: no_fences
+      - type: not_empty
+
+  - name: "Safety checklist — database migration"
+    input: "add new column to users table"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["migration"]
+      - type: intent_match
+        task_type: feature
+        domain: database
+      - type: no_fences
+      - type: not_empty
+
+  - name: "Safety checklist — no secret changes"
+    input: "update the API integration with minimal changes"
+    mode: agent
+    asserts:
+      - type: not_contains
+        value: ["api_key", "secret", "password"]
+      - type: no_fences
+      - type: not_empty
+
+  - name: "Safety checklist — test requirement (TR)"
+    input: "login sayfasındaki token yenileme sorununu düzelt başka yeri bozma"
+    mode: agent
+    asserts:
+      - type: contains
+        value: ["minimal", "targeted"]
+      - type: intent_match
+        task_type: bugfix
+        domain: auth
+      - type: no_fences
+      - type: not_empty

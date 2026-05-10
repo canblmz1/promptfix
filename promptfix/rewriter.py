@@ -25,6 +25,7 @@ class RewriteResult:
         validation_status: str,
         intent: Intent | None = None,
         quality_score: int | None = None,
+        score_breakdown: dict | None = None,
     ):
         self.optimized = optimized
         self.mode = mode
@@ -32,7 +33,8 @@ class RewriteResult:
         self.duration_ms = duration_ms
         self.validation_status = validation_status
         self.intent = intent
-        self.quality_score = quality_score  # 0-100 heuristic score
+        self.quality_score = quality_score  # 0-100 heuristic score (backward compat)
+        self.score_breakdown = score_breakdown  # full breakdown dict from scorer
 
     def to_dict(self) -> dict:
         d = {
@@ -45,6 +47,8 @@ class RewriteResult:
         }
         if self.quality_score is not None:
             d["quality_score"] = self.quality_score
+        if self.score_breakdown is not None:
+            d["score_breakdown"] = self.score_breakdown
         return d
 
 
@@ -167,9 +171,12 @@ def rewrite(
 
     # Quality score (heuristic, never blocks the result)
     quality_score: int | None = None
+    score_breakdown: dict | None = None
     try:
         from promptfix.scorer import score_output
-        quality_score = score_output(cleaned, intent, mode).total
+        _score_result = score_output(cleaned, intent, mode)
+        quality_score = _score_result.total
+        score_breakdown = _score_result.to_dict()
     except Exception:
         pass
 
@@ -196,4 +203,5 @@ def rewrite(
         validation_status=status,
         intent=intent,
         quality_score=quality_score,
+        score_breakdown=score_breakdown,
     )

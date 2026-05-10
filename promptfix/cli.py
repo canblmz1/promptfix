@@ -122,6 +122,8 @@ def init():
 def once(
     text: str = typer.Argument(..., help="Text to optimize"),
     mode: str = typer.Option(None, "--mode", "-m", help="Mode: fast, short, agent, raw, explain"),
+    diff: bool = typer.Option(False, "--diff", "-d", help="Show before/after diff"),
+    score: bool = typer.Option(False, "--score", "-s", help="Show quality score breakdown"),
 ):
     """Optimize a prompt once and print the result."""
     config = load_config()
@@ -129,6 +131,36 @@ def once(
         result = rewrite(text=text, mode=mode, config=config)
         score_str = f" | Q:{result.quality_score}" if result.quality_score is not None else ""
         console.print(Panel(result.optimized, title=f"[green]{result.mode}[/green] | {result.provider} | {result.duration_ms}ms | {result.validation_status}{score_str}"))
+
+        if diff:
+            from promptfix.diff import compute_diff, format_diff_rich
+            from rich.panel import Panel as RichPanel
+            diff_result = compute_diff(text, result.optimized)
+            console.print(RichPanel(
+                format_diff_rich(diff_result),
+                title="[cyan]Before / After Diff[/cyan]",
+                border_style="cyan",
+            ))
+
+        if score and result.score_breakdown:
+            from rich.table import Table
+            sb = result.score_breakdown
+            table = Table(title="Quality Score Breakdown", show_header=True)
+            table.add_column("Dimension", style="cyan")
+            table.add_column("Score", justify="right")
+            table.add_column("Max", justify="right", style="dim")
+            for dim, val in sb.get("breakdown", {}).items():
+                table.add_row(dim, str(val), "20")
+            table.add_row("[bold]TOTAL[/bold]", f"[bold]{sb.get('total', '?')}[/bold]", "[bold]100[/bold]")
+            console.print(table)
+            grade = sb.get("grade", "?")
+            grade_color = {"A": "green", "B": "green", "C": "yellow", "D": "red", "F": "red"}.get(grade, "white")
+            console.print(f"Grade: [{grade_color}]{grade}[/{grade_color}]")
+            suggestions = sb.get("suggestions", [])
+            if suggestions:
+                console.print("\n[dim]Suggestions:[/dim]")
+                for s in suggestions:
+                    console.print(f"  [dim]• {s}[/dim]")
     except RuntimeError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
