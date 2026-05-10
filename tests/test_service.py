@@ -414,3 +414,118 @@ class TestClearHistoryRateLimit:
             resp = client.delete("/history")
         # 200 (cleared) or 401 (token required) — not 404, not 500
         assert resp.status_code in (200, 401)
+
+
+class TestScoreBreakdownInResponse:
+    """score_breakdown should be included in /optimize responses."""
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_optimize_includes_score_breakdown(self, mock_config, mock_provider, client):
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+        }
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = (
+            "Investigate and fix the login token refresh issue "
+            "with minimal, targeted changes. Verify with tests."
+        )
+        mock_provider.return_value = mock_prov
+
+        resp = client.post("/optimize", json={"text": "fix login token bug", "mode": "short"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "score_breakdown" in data, "score_breakdown missing from response"
+        sb = data["score_breakdown"]
+        assert "total" in sb
+        assert "grade" in sb
+        assert "breakdown" in sb
+        assert "suggestions" in sb
+        assert isinstance(sb["total"], int)
+        assert 0 <= sb["total"] <= 100
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_optimize_backward_compat_quality_score(self, mock_config, mock_provider, client):
+        """quality_score field must still be present for backward compatibility."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+        }
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = "Fix the login bug with minimal targeted changes."
+        mock_provider.return_value = mock_prov
+
+        resp = client.post("/optimize", json={"text": "fix login", "mode": "short"})
+        data = resp.get_json()
+        # quality_score is set when scorer succeeds
+        assert "quality_score" in data
+        assert isinstance(data["quality_score"], int)
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_optimize_include_diff_false_by_default(self, mock_config, mock_provider, client):
+        """diff field must NOT be present when include_diff is not sent."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+        }
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = "Fix the login bug with minimal changes."
+        mock_provider.return_value = mock_prov
+
+        resp = client.post("/optimize", json={"text": "fix login", "mode": "short"})
+        data = resp.get_json()
+        assert "diff" not in data, "diff should not appear unless include_diff=true"
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_optimize_include_diff_true(self, mock_config, mock_provider, client):
+        """diff field is present when include_diff=true."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "test"}},
+            "validation": {"enabled": False},
+            "service": {"token": ""},
+        }
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = (
+            "Investigate and fix the login authentication issue with minimal targeted changes."
+        )
+        mock_provider.return_value = mock_prov
+
+        resp = client.post(
+            "/optimize",
+            json={"text": "fix login bug", "mode": "short", "include_diff": True},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "diff" in data, "diff field missing when include_diff=true"
+        assert "unified" in data["diff"]
+        assert "unchanged" in data["diff"]
+
+    @patch("promptfix.service._get_config")
+    def test_config_safe_no_sensitive_data(self, mock_config, client):
+        """config-safe must never expose api_key, token, or secret."""
+        mock_config.return_value = {
+            "provider": "groq",
+            "default_mode": "short",
+            "providers": {"groq": {"model": "llama-3.3-70b", "api_key": "sk-secret123"}},
+            "service": {"token": "my-service-token"},
+        }
+        resp = client.get("/config-safe")
+        assert resp.status_code == 200
+        body = resp.get_data(as_text=True)
+        assert "sk-secret123" not in body
+        assert "my-service-token" not in body

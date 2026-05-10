@@ -123,6 +123,7 @@ def optimize():
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
     mode = data.get("mode")
+    include_diff = data.get("include_diff", False)
 
     if not text:
         return jsonify({"error": "No text provided"}), 400
@@ -133,7 +134,14 @@ def optimize():
     try:
         provider = _get_provider()
         result = rewrite(text=text, mode=mode, config=config, provider=provider, source="api")
-        return jsonify(result.to_dict())
+        response = result.to_dict()
+        # Always include score_breakdown in API responses (already in to_dict if present)
+        # Optionally include diff when requested
+        if include_diff:
+            from promptfix.diff import compute_diff
+            diff_result = compute_diff(text, result.optimized)
+            response["diff"] = diff_result.to_dict()
+        return jsonify(response)
     except Exception:
         return jsonify({"error": "Internal server error"}), 500
 
