@@ -24,6 +24,7 @@ class RewriteResult:
         duration_ms: int,
         validation_status: str,
         intent: Intent | None = None,
+        quality_score: int | None = None,
     ):
         self.optimized = optimized
         self.mode = mode
@@ -31,9 +32,10 @@ class RewriteResult:
         self.duration_ms = duration_ms
         self.validation_status = validation_status
         self.intent = intent
+        self.quality_score = quality_score  # 0-100 heuristic score
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "optimized": self.optimized,
             "mode": self.mode,
             "provider": self.provider,
@@ -41,6 +43,9 @@ class RewriteResult:
             "validation_status": self.validation_status,
             "valid": self.validation_status in ("valid", "unvalidated", "fallback"),
         }
+        if self.quality_score is not None:
+            d["quality_score"] = self.quality_score
+        return d
 
 
 def create_provider(config: dict | None = None, provider_name: str | None = None) -> BaseProvider:
@@ -160,6 +165,14 @@ def rewrite(
 
     elapsed_ms = int((time.time() - start) * 1000)
 
+    # Quality score (heuristic, never blocks the result)
+    quality_score: int | None = None
+    try:
+        from promptfix.scorer import score_output
+        quality_score = score_output(cleaned, intent, mode).total
+    except Exception:
+        pass
+
     # Log to history
     try:
         from promptfix.history import log_entry
@@ -182,4 +195,5 @@ def rewrite(
         duration_ms=elapsed_ms,
         validation_status=status,
         intent=intent,
+        quality_score=quality_score,
     )
