@@ -191,6 +191,7 @@ def rewrite(
             duration_ms=elapsed_ms,
             validation_status=status,
             source=source,
+            quality_score=quality_score,
         )
     except Exception:
         pass  # History logging must never break the pipeline
