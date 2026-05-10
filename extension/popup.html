@@ -71,6 +71,62 @@
       color: #4ade80;
     }
 
+    .history-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .history-output {
+      font-size: 12px;
+      color: #c9d1d9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .history-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .score-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+    .copy-btn {
+      font-size: 10px;
+      padding: 1px 6px;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1.4;
+      transition: all 0.1s;
+    }
+    .copy-btn:hover { color: #c9d1d9; border-color: #8b949e; }
+    .copy-btn:disabled { opacity: 0.5; cursor: default; }
+    .offline-banner {
+      margin: 0;
+      padding: 8px 14px;
+      background: #2d1a1a;
+      border-bottom: 1px solid #f8514930;
+      color: #f85149;
+      font-size: 11px;
+    }
+    .offline-banner code {
+      background: #3d1a1a;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
     .history-item {
       padding: 6px 0;
       border-bottom: 1px solid #161b22;
@@ -83,23 +139,10 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .history-output {
-      font-size: 12px;
-      color: #c9d1d9;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 2px;
-    }
     .history-meta {
       font-size: 10px;
       color: #484f58;
       margin-top: 2px;
-    }
-    .empty {
-      color: #484f58;
-      font-style: italic;
-      font-size: 12px;
     }
     .info-row {
       display: flex;
@@ -129,6 +172,10 @@
     <span class="status-text" id="statusText">Checking...</span>
   </div>
 
+  <div id="offlineBanner" class="offline-banner" style="display:none;">
+    Service offline &mdash; run: <code>promptfix service</code>
+  </div>
+
   <div class="section">
     <div class="section-title">Service</div>
     <div class="info-row">
@@ -138,6 +185,10 @@
     <div class="info-row">
       <span class="info-label">Model</span>
       <span class="info-value" id="model">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Status</span>
+      <span class="info-value" id="serviceStatus">—</span>
     </div>
     <div class="info-row">
       <span class="info-label">Uptime</span>

@@ -7,8 +7,10 @@ const SERVICE_URL_DEFAULT = "http://127.0.0.1:52849";
 const els = {
   statusDot: document.getElementById("statusDot"),
   statusText: document.getElementById("statusText"),
+  offlineBanner: document.getElementById("offlineBanner"),
   provider: document.getElementById("provider"),
   model: document.getElementById("model"),
+  serviceStatus: document.getElementById("serviceStatus"),
   uptime: document.getElementById("uptime"),
   history: document.getElementById("history"),
   modeBtns: document.querySelectorAll(".mode-btn"),
@@ -35,7 +37,51 @@ function formatUptime(seconds) {
 function setStatus(ok, text) {
   els.statusDot.className = "status-dot" + (ok ? " ok" : ok === false ? " err" : "");
   els.statusText.textContent = text;
+  if (els.offlineBanner) {
+    els.offlineBanner.style.display = ok === false ? "block" : "none";
+  }
 }
+
+// --- Score badge helper ---
+
+function scoreBadge(score) {
+  if (score === null || score === undefined) return "";
+  const color = score >= 85 ? "#3fb950" : score >= 60 ? "#d29922" : "#f85149";
+  return `<span class="score-badge" style="background:${color}20;color:${color};border:1px solid ${color}40">${score}</span>`;
+}
+
+// --- Copy to clipboard helper ---
+
+async function copyToClipboard(text, btnEl) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for non-HTTPS / older contexts
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    const orig = btnEl.textContent;
+    btnEl.textContent = "Copied!";
+    btnEl.disabled = true;
+    setTimeout(() => {
+      btnEl.textContent = orig;
+      btnEl.disabled = false;
+    }, 1500);
+  } catch {
+    btnEl.textContent = "Failed";
+    setTimeout(() => { btnEl.textContent = "Copy"; }, 1500);
+  }
+}
+
+// TODO(sprint-3): Diff UI — when popup stores last optimize result locally,
+// add a "Show diff" toggle that calls compute_diff via /optimize?include_diff=true.
 
 // --- Mode selection ---
 
@@ -76,17 +122,33 @@ function renderHistory(entries) {
     els.history.innerHTML = '<div class="empty">No history yet</div>';
     return;
   }
+
+  // Store outputs for copy buttons
+  const outputs = entries.map((e) => e.output || "");
+
   els.history.innerHTML = entries
     .map(
-      (e) => `
+      (e, i) => `
     <div class="history-item">
       <div class="history-input">${escapeHtml(e.input || "")}</div>
-      <div class="history-output">${escapeHtml(e.output || "")}</div>
-      <div class="history-meta">${e.mode || "?"} | ${e.provider || "?"} | ${e.ms || 0}ms | ${e.status || "?"}</div>
+      <div class="history-header">
+        <div class="history-output">${escapeHtml(e.output || "")}</div>
+        <div class="history-actions">
+          ${scoreBadge(e.quality_score)}
+          <button class="copy-btn" data-idx="${i}" title="Copy optimized prompt">Copy</button>
+        </div>
+      </div>
+      <div class="history-meta">${escapeHtml(e.mode || "?")} | ${escapeHtml(e.provider || "?")} | ${e.ms || 0}ms | ${escapeHtml(e.status || "?")}</div>
     </div>
   `
     )
     .join("");
+
+  els.history.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      copyToClipboard(outputs[parseInt(btn.dataset.idx, 10)], btn);
+    });
+  });
 }
 
 function escapeHtml(text) {
@@ -112,11 +174,15 @@ async function loadStatus() {
       setStatus(true, "Connected");
       els.provider.textContent = health.provider || "—";
       els.model.textContent = health.model || "—";
+      els.serviceStatus.textContent = "Running";
+      els.serviceStatus.style.color = "#3fb950";
       els.uptime.textContent = formatUptime(health.uptime_s || 0);
     } else {
       setStatus(false, "Offline");
       els.provider.textContent = "—";
       els.model.textContent = "—";
+      els.serviceStatus.textContent = "Not running";
+      els.serviceStatus.style.color = "#f85149";
       els.uptime.textContent = "—";
     }
 
@@ -130,6 +196,8 @@ async function loadStatus() {
     setStatus(false, "Offline");
     els.provider.textContent = "—";
     els.model.textContent = "—";
+    els.serviceStatus.textContent = "Not running";
+    els.serviceStatus.style.color = "#f85149";
     els.uptime.textContent = "—";
     els.history.innerHTML = '<div class="empty">Service unavailable</div>';
   }

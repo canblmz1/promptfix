@@ -111,9 +111,27 @@ promptfix service
 
 ### 6. Use it
 
-**Browser:** Select text → Right-click → **PromptFix** → **Optimize Coding Prompt**
+**Browser — context menu:** Select text → Right-click → **PromptFix** → choose a mode:
 
-**Any app:** Select text → press `Ctrl+Alt+S` (requires `promptfix tray`)
+| Menu item | Mode | Best for |
+|---|---|---|
+| Optimize Coding Prompt | `short` | General code tasks |
+| Fast Rewrite | `fast` | Quick one-liner fixes |
+| Agent Prompt | `agent` | Multi-step agent tasks |
+| Explain Mode | `explain` | Understanding / root-cause analysis |
+| Raw Rewrite | `raw` | Unstructured free-form rewrite |
+
+**Browser — popup:** Click the extension icon to see:
+- **Service status** (Connected / Offline) with provider, model, and uptime
+- **Recent history** — each item shows:
+  - Truncated input and output
+  - **Score badge** (colour-coded: 🟢 85+, 🟡 60–84, 🔴 <60) — only shown when score data is available
+  - **Copy button** — copies the optimised prompt to the clipboard; shows "Copied!" feedback for 1.5 s; falls back gracefully if Clipboard API is unavailable
+- **Default mode selector** — saved to sync storage
+
+**Offline state:** When the service is not running the popup shows a red "Service offline — run: `promptfix service`" banner in addition to the status indicator.
+
+**Any app (hotkeys):** Select text → press `Ctrl+Alt+S` (requires `promptfix tray`)
 
 ---
 

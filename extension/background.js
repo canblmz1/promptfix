@@ -18,9 +18,21 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["selection"],
   });
   chrome.contextMenus.create({
+    id: "promptfix-fast",
+    parentId: "promptfix-parent",
+    title: "Fast Rewrite",
+    contexts: ["selection"],
+  });
+  chrome.contextMenus.create({
     id: "promptfix-agent",
     parentId: "promptfix-parent",
     title: "Agent Prompt",
+    contexts: ["selection"],
+  });
+  chrome.contextMenus.create({
+    id: "promptfix-explain",
+    parentId: "promptfix-parent",
+    title: "Explain Mode",
     contexts: ["selection"],
   });
   chrome.contextMenus.create({
@@ -33,7 +45,9 @@ chrome.runtime.onInstalled.addListener(() => {
 
 const MODE_MAP = {
   "promptfix-short": "short",
+  "promptfix-fast": "fast",
   "promptfix-agent": "agent",
+  "promptfix-explain": "explain",
   "promptfix-raw": "raw",
 };
 

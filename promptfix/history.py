@@ -25,6 +25,7 @@ def log_entry(
     duration_ms: int,
     validation_status: str,
     source: str = "unknown",
+    quality_score: int | None = None,
 ) -> None:
     """Append one entry to the history log."""
     entry = {
@@ -37,6 +38,8 @@ def log_entry(
         "status": validation_status,
         "source": source,
     }
+    if quality_score is not None:
+        entry["quality_score"] = quality_score
     path = _history_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as f:
