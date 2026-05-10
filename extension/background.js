@@ -51,6 +51,41 @@ const MODE_MAP = {
   "promptfix-raw": "raw",
 };
 
+// --- Local result cache ---
+// Stores last 5 optimize results in chrome.storage.local.
+// Never writes API keys, service tokens, or config data.
+
+const CACHE_KEY = "pf_result_cache";
+const CACHE_MAX = 5;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function readCache() {
+  const items = await chrome.storage.local.get({ [CACHE_KEY]: [] });
+  return items[CACHE_KEY];
+}
+
+async function writeCache(entry) {
+  // entry fields: input, output, mode, quality_score, score_breakdown, diff, timestamp
+  // Explicitly exclude any sensitive fields (token, api_key, config)
+  const safe = {
+    input:           String(entry.input  || "").slice(0, 500),
+    output:          String(entry.output || "").slice(0, 1000),
+    mode:            String(entry.mode   || ""),
+    quality_score:   typeof entry.quality_score === "number" ? entry.quality_score : null,
+    score_breakdown: entry.score_breakdown || null,
+    diff:            entry.diff || null,
+    timestamp:       Date.now(),
+  };
+
+  let cache = await readCache();
+  // Prepend newest, keep last CACHE_MAX, drop entries older than TTL
+  cache = [safe, ...cache]
+    .filter((e) => Date.now() - e.timestamp < CACHE_TTL_MS)
+    .slice(0, CACHE_MAX);
+
+  await chrome.storage.local.set({ [CACHE_KEY]: cache });
+}
+
 // --- Context menu click handler ---
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -67,11 +102,20 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   sendToTab(tab.id, { action: "showLoading" });
 
   try {
-    const result = await callService(selectedText.trim(), mode);
+    const result = await callService(selectedText.trim(), mode, { include_diff: true });
     sendToTab(tab.id, {
       action: "replaceSelection",
       text: result.optimized,
     });
+    // Write to local cache (fire-and-forget, must not break replace flow)
+    writeCache({
+      input:           selectedText.trim(),
+      output:          result.optimized,
+      mode:            result.mode || mode,
+      quality_score:   result.quality_score   ?? null,
+      score_breakdown: result.score_breakdown  ?? null,
+      diff:            result.diff             ?? null,
+    }).catch(() => {});
   } catch (err) {
     sendToTab(tab.id, {
       action: "showError",
@@ -110,7 +154,7 @@ function sendToTab(tabId, message) {
 
 // --- Call the local PromptFix service ---
 
-async function callService(text, mode) {
+async function callService(text, mode, extraBody = {}) {
   const [syncItems, localItems] = await Promise.all([
     chrome.storage.sync.get({ serviceUrl: SERVICE_URL_DEFAULT }),
     chrome.storage.local.get({ serviceToken: "" }),
@@ -129,7 +173,7 @@ async function callService(text, mode) {
     resp = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify({ text, mode }),
+      body: JSON.stringify({ text, mode, ...extraBody }),
     });
   } catch (e) {
     throw new Error(
@@ -144,3 +188,11 @@ async function callService(text, mode) {
 
   return await resp.json();
 }
+
+// Expose cache helpers so popup.js can read the cache via chrome.runtime.sendMessage
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.action === "getCache") {
+    readCache().then((cache) => sendResponse({ cache })).catch(() => sendResponse({ cache: [] }));
+    return true; // keep channel open for async response
+  }
+});

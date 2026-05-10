@@ -80,8 +80,32 @@ async function copyToClipboard(text, btnEl) {
   }
 }
 
-// TODO(sprint-3): Diff UI — when popup stores last optimize result locally,
-// add a "Show diff" toggle that calls compute_diff via /optimize?include_diff=true.
+// --- Local result cache (read-only in popup) ---
+
+async function readCache() {
+  try {
+    const resp = await chrome.runtime.sendMessage({ action: "getCache" });
+    return Array.isArray(resp?.cache) ? resp.cache : [];
+  } catch {
+    return [];
+  }
+}
+
+// --- Diff rendering ---
+
+function renderDiffLines(unified) {
+  if (!unified || typeof unified !== "string") return "";
+  return unified
+    .split("\n")
+    .map((line) => {
+      let cls = "diff-line-ctx";
+      if (line.startsWith("+") && !line.startsWith("++")) cls = "diff-line-add";
+      else if (line.startsWith("-") && !line.startsWith("--")) cls = "diff-line-del";
+      else if (line.startsWith("@@") || line.startsWith("---") || line.startsWith("+++")) cls = "diff-line-hdr";
+      return `<div class="${cls}">${escapeHtml(line) || "\u00a0"}</div>`;
+    })
+    .join("");
+}
 
 // --- Mode selection ---
 
@@ -107,46 +131,112 @@ els.modeBtns.forEach((btn) => {
 // --- History ---
 
 async function loadHistory(serviceUrl) {
+  const cacheEntries = await readCache();
   try {
     const resp = await fetch(`${serviceUrl}/history?limit=5`);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
-    renderHistory(data.entries || []);
+    renderHistory(data.entries || [], cacheEntries);
   } catch {
-    els.history.innerHTML = '<div class="empty">Service unavailable</div>';
+    // Service unavailable — show cache-only if we have it
+    if (cacheEntries.length) {
+      renderHistory([], cacheEntries);
+    } else {
+      els.history.innerHTML = '<div class="empty">Service unavailable</div>';
+    }
   }
 }
 
-function renderHistory(entries) {
-  if (!entries.length) {
+function buildHistoryItem(e, i) {
+  const output = e.output || e.optimized || "";
+  const diffUnified = e.diff?.unified ?? null;
+  const hasDiff = diffUnified && !e.diff?.unchanged;
+
+  const metaParts = [
+    escapeHtml(e.mode || "?"),
+    escapeHtml(e.provider || (e.source ? escapeHtml(e.source) : "?")),
+    e.ms ? `${e.ms}ms` : "",
+    escapeHtml(e.status || ""),
+  ].filter(Boolean);
+
+  return `
+    <div class="history-item">
+      <div class="history-input">${escapeHtml(e.input || "")}</div>
+      <div class="history-header">
+        <div class="history-output">${escapeHtml(output)}</div>
+        <div class="history-actions">
+          ${scoreBadge(e.quality_score)}
+          ${hasDiff ? `<button class="diff-toggle" data-idx="${i}">Diff</button>` : ""}
+          <button class="copy-btn" data-idx="${i}" title="Copy optimized prompt">Copy</button>
+        </div>
+      </div>
+      ${metaParts.length ? `<div class="history-meta">${metaParts.join(" | ")}</div>` : ""}
+      <div class="diff-view" id="diff-${i}" style="display:none;"></div>
+    </div>
+  `;
+}
+
+function renderHistory(entries, cacheEntries) {
+  // Merge: deduplicate by output text, cache items fill diff if history item lacks it
+  const seen = new Set();
+  const merged = [];
+  for (const e of entries) {
+    const key = (e.output || e.optimized || "").slice(0, 120);
+    if (!seen.has(key)) {
+      seen.add(key);
+      // Try to enrich with diff from matching cache entry
+      if (!e.diff) {
+        const cached = (cacheEntries || []).find(
+          (c) => (c.output || "").slice(0, 120) === key
+        );
+        if (cached?.diff) e.diff = cached.diff;
+        if (e.quality_score == null && cached?.quality_score != null) {
+          e.quality_score = cached.quality_score;
+        }
+      }
+      merged.push(e);
+    }
+  }
+
+  // Also add cache-only entries (not in server history)
+  for (const c of (cacheEntries || [])) {
+    const key = (c.output || "").slice(0, 120);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(c);
+    }
+  }
+
+  if (!merged.length) {
     els.history.innerHTML = '<div class="empty">No history yet</div>';
     return;
   }
 
-  // Store outputs for copy buttons
-  const outputs = entries.map((e) => e.output || "");
+  const outputs = merged.map((e) => e.output || e.optimized || "");
+  const diffs   = merged.map((e) => e.diff?.unified ?? null);
 
-  els.history.innerHTML = entries
-    .map(
-      (e, i) => `
-    <div class="history-item">
-      <div class="history-input">${escapeHtml(e.input || "")}</div>
-      <div class="history-header">
-        <div class="history-output">${escapeHtml(e.output || "")}</div>
-        <div class="history-actions">
-          ${scoreBadge(e.quality_score)}
-          <button class="copy-btn" data-idx="${i}" title="Copy optimized prompt">Copy</button>
-        </div>
-      </div>
-      <div class="history-meta">${escapeHtml(e.mode || "?")} | ${escapeHtml(e.provider || "?")} | ${e.ms || 0}ms | ${escapeHtml(e.status || "?")}</div>
-    </div>
-  `
-    )
-    .join("");
+  els.history.innerHTML = merged.map((e, i) => buildHistoryItem(e, i)).join("");
 
   els.history.querySelectorAll(".copy-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       copyToClipboard(outputs[parseInt(btn.dataset.idx, 10)], btn);
+    });
+  });
+
+  els.history.querySelectorAll(".diff-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      const panel = document.getElementById(`diff-${idx}`);
+      if (!panel) return;
+      const open = panel.style.display !== "none";
+      if (open) {
+        panel.style.display = "none";
+        btn.textContent = "Diff";
+      } else {
+        panel.innerHTML = renderDiffLines(diffs[idx]);
+        panel.style.display = "block";
+        btn.textContent = "Hide";
+      }
     });
   });
 }
