@@ -129,7 +129,21 @@ promptfix service
   - **Copy button** — copies the optimised prompt to the clipboard; shows "Copied!" feedback for 1.5 s; falls back gracefully if Clipboard API is unavailable
 - **Default mode selector** — saved to sync storage
 
-**Offline state:** When the service is not running the popup shows a red "Service offline — run: `promptfix service`" banner in addition to the status indicator.
+**Diff toggle:** When a history item has diff data available, a "Diff" button appears next to the copy button. Clicking it expands an inline panel showing the before/after diff with colour coding:
+- Green lines (`+`) — additions in the optimised prompt
+- Red lines (`-`) — removals from the original prompt
+- Grey lines — context and diff headers
+
+The panel scrolls if the diff is long. Click "Hide" to collapse it.
+
+**Local result cache:** Every optimize request sent through the extension (context menu or popup) is cached locally in `chrome.storage.local`:
+- Stores the last **5** results only
+- Entries expire after **24 hours** automatically
+- Cache persists if the service goes offline — popup can still show recent history with diff
+- **Never stored:** API key, service token, provider credentials, or config data
+- Cache is read-only from the popup; only the background service worker writes to it
+
+**Offline state:** When the service is not running the popup shows a red "Service offline — run: `promptfix service`" banner. Recent locally-cached results are still shown.
 
 **Any app (hotkeys):** Select text → press `Ctrl+Alt+S` (requires `promptfix tray`)
 
