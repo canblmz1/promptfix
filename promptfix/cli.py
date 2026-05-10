@@ -438,6 +438,91 @@ def debug_rewrite(
         console.print(f"[red]{e}[/red]")
 
 
+@app.command(name="preset")
+def preset_cmd(
+    action: str = typer.Argument(..., help="list | use | add | delete"),
+    name: str = typer.Argument(None, help="Preset name"),
+    text: str = typer.Option(None, "--text", "-t", help="Text to rewrite (for 'use')"),
+    mode: str = typer.Option(None, "--mode", "-m", help="Override mode"),
+    description: str = typer.Option("", "--desc", help="Description (for 'add')"),
+    system_hint: str = typer.Option("", "--hint", help="System hint (for 'add')"),
+):
+    """Manage and apply prompt presets.
+
+    \b
+    promptfix preset list
+    promptfix preset use bugfix-minimal --text "login bozuldu"
+    promptfix preset add my-preset --desc "..." --hint "..." --mode short
+    promptfix preset delete my-preset
+    """
+    from promptfix.presets import list_presets, get_preset, add_user_preset, delete_user_preset
+
+    if action == "list":
+        presets = list_presets()
+        console.print("\n[bold]Available presets:[/bold]\n")
+        for pname, pdesc, source in presets:
+            tag = "[dim]builtin[/dim]" if source == "builtin" else "[cyan]user[/cyan]"
+            console.print(f"  {tag} [bold]{pname}[/bold] — {pdesc}")
+        console.print()
+
+    elif action == "use":
+        if not name:
+            console.print("[red]Specify preset name[/red]")
+            raise typer.Exit(1)
+        preset = get_preset(name)
+        if not preset:
+            console.print(f"[red]Preset not found: {name}[/red]")
+            raise typer.Exit(1)
+        if not text:
+            text = typer.prompt("Text to rewrite")
+        config = load_config()
+        effective_mode = mode or preset.get("mode", "short")
+        try:
+            result = rewrite(
+                text=text,
+                mode=effective_mode,
+                config=config,
+                preset_hint=preset.get("system_hint", ""),
+            )
+            console.print(Panel(
+                result.optimized,
+                title=f"[green]{name}[/green] | {result.mode} | {result.provider} | {result.duration_ms}ms",
+            ))
+        except RuntimeError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(1)
+
+    elif action == "add":
+        if not name:
+            console.print("[red]Specify preset name[/red]")
+            raise typer.Exit(1)
+        if not description:
+            description = typer.prompt("Description")
+        if not system_hint:
+            system_hint = typer.prompt("System hint (instructions for the AI)")
+        effective_mode = mode or typer.prompt("Mode", default="short")
+        add_user_preset(name, description, effective_mode, system_hint)
+        console.print(f"[green]✓[/green] Preset '{name}' saved.")
+
+    elif action == "delete":
+        if not name:
+            console.print("[red]Specify preset name[/red]")
+            raise typer.Exit(1)
+        try:
+            removed = delete_user_preset(name)
+            if removed:
+                console.print(f"[green]✓[/green] Preset '{name}' deleted.")
+            else:
+                console.print(f"[yellow]Preset '{name}' not found.[/yellow]")
+        except ValueError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(1)
+
+    else:
+        console.print(f"[red]Unknown action: {action}[/red] (list | use | add | delete)")
+        raise typer.Exit(1)
+
+
 @app.command(name="debug-guard")
 def debug_guard(text: str = typer.Argument(..., help="Output text to validate")):
     """Test the output guard on a string."""

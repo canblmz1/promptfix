@@ -43,6 +43,7 @@ TASK_KEYWORDS = {
     ],
     "refactor": [
         "refactor", "yeniden düzenle", "refactoring",
+        "yeniden yaz", "yaz", "rewrite",
     ],
     "cleanup": [
         "temizle", "cleanup", "remove unused", "sil",
@@ -82,6 +83,16 @@ DOMAIN_KEYWORDS = {
     ],
     "tests": [
         "test", "spec", "coverage", "jest", "pytest", "vitest",
+    ],
+    "security": [
+        "security", "güvenlik", "xss", "csrf", "injection", "sql injection",
+        "sqli", "vulnerability", "güvenlik açığı", "sanitize", "sanitization",
+        "authentication", "authorization", "permission", "izin", "exploit",
+    ],
+    "deploy": [
+        "deploy", "deployment", "release", "yayına al", "prod", "production",
+        "ci", "cd", "pipeline", "docker", "kubernetes", "k8s", "canlıya al",
+        "versiyon", "version", "tag", "rollback",
     ],
 }
 

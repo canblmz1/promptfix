@@ -51,6 +51,7 @@ def build_rewrite_prompt(
     intent: Intent,
     context_lite: str,
     mode: str,
+    preset_hint: str = "",
 ) -> list[dict[str, str]]:
     """Build the messages array sent to the provider."""
     user_parts = [
@@ -64,6 +65,9 @@ def build_rewrite_prompt(
         f"allow_refactor: {intent.allow_refactor}",
         f">>>",
     ]
+
+    if preset_hint:
+        user_parts.append(f"\nPreset instructions:\n<<<\n{preset_hint}\n>>>")
 
     if context_lite and mode != "raw":
         user_parts.append(f"\nOptional repo hints:\n<<<\n{context_lite}\n>>>")

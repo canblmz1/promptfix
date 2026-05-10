@@ -88,6 +88,7 @@ def rewrite(
     provider: BaseProvider | None = None,
     project_hints: dict | None = None,
     source: str = "unknown",
+    preset_hint: str = "",
 ) -> RewriteResult:
     if config is None:
         config = load_config()
@@ -102,7 +103,7 @@ def rewrite(
 
     intent = parse_intent(text)
     context_lite = build_context(intent, mode, project_hints)
-    messages = build_rewrite_prompt(text, intent, context_lite, mode)
+    messages = build_rewrite_prompt(text, intent, context_lite, mode, preset_hint=preset_hint)
 
     # --- Multi-provider fallback ---
     raw_output: str | None = None
