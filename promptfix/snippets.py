@@ -35,9 +35,17 @@ def _save_snippets(snippets: dict[str, str]) -> None:
     )
 
 
+def _is_valid_snippet_name(name: str) -> bool:
+    """Names must be alphanumerics, hyphens, or underscores to avoid injection issues."""
+    import re
+    return bool(re.fullmatch(r"[A-Za-z0-9_\-]+", name))
+
+
 def add_snippet(name: str, content: str) -> bool:
     """Add or overwrite a snippet."""
     if not name or not content:
+        return False
+    if not _is_valid_snippet_name(name):
         return False
     snippets = _load_snippets()
     snippets[name] = content

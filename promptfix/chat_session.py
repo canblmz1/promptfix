@@ -122,6 +122,9 @@ def _threads_dir() -> Path:
 
 
 def _thread_path(thread_id: str) -> Path:
+    # Reject path-traversal attempts early
+    if ".." in thread_id or "/" in thread_id or "\\" in thread_id:
+        raise ValueError("Invalid thread_id")
     return _threads_dir() / f"{thread_id}.json"
 
 

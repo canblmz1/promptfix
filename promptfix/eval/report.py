@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 from datetime import datetime
 from pathlib import Path
@@ -66,6 +67,11 @@ def print_table(results: list[EvalResult], console: Console | None = None) -> No
     ))
 
 
+def _safe_html(text: str) -> str:
+    """Escape a string for safe inclusion in HTML."""
+    return html.escape(str(text))
+
+
 def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
     """Generate an interactive HTML report."""
     output_path = Path(output_path)
@@ -78,24 +84,27 @@ def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
     for r in results:
         status_class = "pass" if r.passed else "warn" if r.final_score >= 60 else "fail"
         status_text = "PASS" if r.passed else "WARN" if r.final_score >= 60 else "FAIL"
-        rule_details = "<br>".join(r.rule_score.breakdown)
+        rule_details = "<br>".join(_safe_html(line) for line in r.rule_score.breakdown)
         llm_details = ""
         if r.llm_score:
-            llm_details = f"<br><strong>LLM Judge ({r.llm_score.score}/100):</strong><br>{'<br>'.join(r.llm_score.breakdown)}"
+            llm_details = (
+                f"<br><strong>LLM Judge ({r.llm_score.score}/100):</strong><br>"
+                f"{'<br>'.join(_safe_html(line) for line in r.llm_score.breakdown)}"
+            )
 
         rows_html += f"""
         <tr class="{status_class}">
-            <td class="name">{r.case.name}</td>
+            <td class="name">{_safe_html(r.case.name)}</td>
             <td class="score">{r.final_score}/100</td>
-            <td class="mode">{r.case.mode}</td>
+            <td class="mode">{_safe_html(r.case.mode)}</td>
             <td class="status"><span class="badge {status_class}">{status_text}</span></td>
             <td class="duration">{r.duration_ms}ms</td>
             <td class="details">
                 <details>
                     <summary>View</summary>
                     <div class="detail-content">
-                        <p><strong>Input:</strong> {r.case.input}</p>
-                        <p><strong>Output:</strong> {r.output}</p>
+                        <p><strong>Input:</strong> {_safe_html(r.case.input)}</p>
+                        <p><strong>Output:</strong> {_safe_html(r.output)}</p>
                         <p><strong>Rule Score ({r.rule_score.score}/100):</strong><br>{rule_details}</p>
                         {llm_details}
                     </div>
@@ -104,7 +113,15 @@ def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
         </tr>
         """
 
-    html = f"""<!DOCTYPE html>
+    provider_label = _safe_html(results[0].provider) if results else "N/A"
+    generated_at = _safe_html(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+    # Serialize data safely for inclusion in a <script> block.
+    json_data = json.dumps([_result_to_dict(r) for r in results], indent=2, ensure_ascii=True)
+    # Break '</script>' sequences so an attacker cannot close the script tag.
+    json_data = json_data.replace("</script>", "<\\/script>")
+
+    html_report = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -142,13 +159,13 @@ def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
 <body>
     <div class="container">
         <h1>PromptFix Evaluation Report</h1>
-        <p class="meta">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Provider: {results[0].provider if results else 'N/A'}</p>
+        <p class="meta">Generated: {generated_at} | Provider: {provider_label}</p>
 
         <div class="summary">
             <div class="card"><div class="value">{len(results)}</div><div class="label">Tests</div></div>
             <div class="card"><div class="value">{passed}</div><div class="label">Passed</div></div>
             <div class="card"><div class="value">{avg}</div><div class="label">Avg Score</div></div>
-            <div class="card"><div class="value">{results[0].provider if results else 'N/A'}</div><div class="label">Provider</div></div>
+            <div class="card"><div class="value">{provider_label}</div><div class="label">Provider</div></div>
         </div>
 
         <table>
@@ -174,7 +191,7 @@ def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
     </div>
 
     <script>
-        const data = {json.dumps([_result_to_dict(r) for r in results], indent=2)};
+        const data = {json_data};
         function exportJSON() {{
             const blob = new Blob([JSON.stringify(data, null, 2)], {{type: 'application/json'}});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'eval-results.json'; a.click();
@@ -189,7 +206,7 @@ def generate_html(results: list[EvalResult], output_path: Path | str) -> None:
 </html>
 """
 
-    output_path.write_text(html, encoding="utf-8")
+    output_path.write_text(html_report, encoding="utf-8")
 
 
 def _result_to_dict(r: EvalResult) -> dict[str, Any]:

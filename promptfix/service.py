@@ -40,6 +40,24 @@ _ALLOWED_ORIGIN_PREFIXES = (
     "http://localhost",
 )
 
+
+def _is_allowed_origin(origin: str) -> bool:
+    """Validate that *origin* is a true browser-extension or localhost origin.
+
+    Uses strict hostname checking to prevent prefix-bypass attacks such as
+    ``http://127.0.0.1.evil.com``.
+    """
+    if origin.startswith(("chrome-extension://", "moz-extension://")):
+        return True
+    from urllib.parse import urlparse
+    parsed = urlparse(origin)
+    hostname = parsed.hostname
+    scheme = parsed.scheme
+    return (
+        scheme in ("http", "https")
+        and hostname in ("localhost", "127.0.0.1")
+    )
+
 # UUID v4 pattern for thread IDs
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
@@ -77,7 +95,7 @@ def _check_auth():
 def add_cors(response):
     """Restrict CORS to localhost and browser-extension origins only."""
     origin = request.headers.get("Origin", "")
-    if origin and origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin and _is_allowed_origin(origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
@@ -118,7 +136,7 @@ def optimize():
     if denied:
         return denied
 
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(force=False, silent=True)
     if not data:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
@@ -183,7 +201,7 @@ def chat_endpoint():
     if denied:
         return denied
 
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(force=False, silent=True)
     if not data:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
@@ -239,7 +257,7 @@ def chat_stream_endpoint():
     if denied:
         return denied
 
-    data = request.get_json(force=True, silent=True)
+    data = request.get_json(force=False, silent=True)
     if not data:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     text = data.get("text", "").strip()
@@ -376,6 +394,10 @@ def run_service(host: str = "127.0.0.1", port: int = 52849):
     global _config, _provider, _start_time
     _start_time = time.time()
     _config = load_config()
+
+    if host not in ("127.0.0.1", "localhost"):
+        print(f"\n  [WARNING] Binding to {host} exposes the service on your network.")
+        print("  For local-only use, keep the default host: 127.0.0.1\n")
 
     provider_name = _config.get("provider", "groq")
     model = _config.get("providers", {}).get(provider_name, {}).get("model", "?")
