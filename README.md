@@ -436,6 +436,67 @@ curl -X POST http://127.0.0.1:52849/config/reload
 - **Multi-provider fallback** — if the primary LLM provider fails, PromptFix automatically tries all other configured providers before raising an error
 - No SaaS backend, no user accounts, no database
 
+### Why 127.0.0.1?
+
+PromptFix is designed to be **local-first**. Binding to `127.0.0.1` (localhost) means:
+
+- The service is **not reachable from other devices** on your network.
+- Your prompts, history, and API keys **never leave your machine**.
+- If you need to change the bind address (e.g. for a VM), run `promptfix service --host 0.0.0.0` — but be aware this exposes the service to your local network.
+
+### API Key Safety
+
+- **Never** commit your `.env` file or `config.yaml` to version control.
+- The browser extension **never sees your API key**; it only talks to the local service.
+- If you set a `service.token`, the extension stores it in Chrome's **local** (not sync) storage.
+
+---
+
+## Troubleshooting
+
+### "Missing API key for Groq"
+
+```bash
+# Option A: .env file
+cp .env.example .env
+# Edit .env and add: GROQ_API_KEY=gsk_...
+
+# Option B: Environment variable (Windows CMD)
+setx GROQ_API_KEY "gsk_your_key"
+# Then open a NEW terminal window.
+```
+
+### "PromptFix service is not running"
+
+1. Make sure the service is started: `promptfix service`
+2. Check your firewall is not blocking `127.0.0.1:52849`.
+3. Verify the extension's Service URL in **Options** matches `http://127.0.0.1:52849`.
+
+### Extension context menu does not appear
+
+- The extension needs **activeTab** permission. Reload the extension from `chrome://extensions`.
+- Some pages (e.g. `chrome://`, PDF viewers) block content scripts — this is expected.
+
+### Ollama offline mode
+
+```bash
+ollama pull qwen2.5:7b
+promptfix provider use ollama
+promptfix service
+```
+
+No API key needed for Ollama. If Ollama is not running, PromptFix will fall back to other configured providers.
+
+### Windows hotkeys not working
+
+- `promptfix tray` is **Windows-only**. On Linux/macOS, use the browser extension instead.
+- Install tray extras: `pip install promptfix[tray]`
+- Run as Administrator if hotkeys still don't register.
+
+### Eval suite fails with "No provider available"
+
+Without an API key, the eval suite runs in **stub mode** (deterministic fallback). This still tests rule-based scoring but does **not** exercise the LLM. To run full evals, set a `GROQ_API_KEY` or use Ollama.
+
 ---
 
 ## Contributing

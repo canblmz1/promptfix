@@ -19,15 +19,27 @@ Thank you for your interest in contributing to PromptFix! This document provides
 pytest -v
 ```
 
-All 152+ tests must pass before submitting a PR.
+All **291+** tests must pass before submitting a PR.
 
 ### Running the Evaluation Suite
 
 ```bash
-promptfix eval --ci
+# Full suite with real provider (requires API key)
+promptfix eval
+
+# CI mode — fails if any test drops below threshold
+promptfix eval --ci --threshold 75
+
+# Stub mode — deterministic fallback, no API key needed (rule-based scoring only)
+promptfix eval
+
+# Generate HTML report
+promptfix eval --report eval-report.html
 ```
 
-The CI threshold is 75/100. Ensure your changes don't drop the evaluation score.
+**Note:** Without an API key, the evaluator runs in stub mode. This still validates rule-based assertions but does **not** test LLM output quality. To test with a real provider, set `GROQ_API_KEY` or configure Ollama.
+
+The CI threshold is **75/100**. Ensure your changes don't drop the evaluation score.
 
 ### Code Style
 
@@ -43,15 +55,34 @@ The CI threshold is 75/100. Ensure your changes don't drop the evaluation score.
 1. Create or edit a YAML file in `evals/`
 2. Follow the existing format:
    ```yaml
+   suite: my-custom-suite
+   language: en
+   description: "What this suite tests"
+
    tests:
      - name: "My test"
-       input: "..."
+       input: "fix the login token refresh"
        mode: short
        asserts:
          - type: contains
-           value: ["expected"]
+           value: ["minimal", "auth"]
+         - type: not_contains
+           value: ["refactor"]
+         - type: intent_match
+           task_type: bugfix
+           domain: auth
+         - type: no_fences
+         - type: not_empty
    ```
-3. Run `promptfix eval` to verify
+3. Run the new suite:
+   ```bash
+   promptfix eval --suite evals/my-custom-suite.yaml
+   ```
+4. Run the full suite to ensure no regressions:
+   ```bash
+   pytest -v
+   promptfix eval --ci
+   ```
 
 ### Adding a New Provider
 
@@ -65,8 +96,8 @@ The CI threshold is 75/100. Ensure your changes don't drop the evaluation score.
 
 1. **Create a feature branch**: `git checkout -b feature/my-feature`
 2. **Make your changes** with clear commit messages
-3. **Run tests**: `pytest -v`
-4. **Run eval suite**: `promptfix eval --ci`
+3. **Run tests**: `pytest -v` (must show 291+ passed)
+4. **Run eval suite**: `promptfix eval --ci --threshold 75`
 5. **Update documentation** if needed (README, docstrings)
 6. **Submit a PR** with a clear description
 
