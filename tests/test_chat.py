@@ -73,6 +73,16 @@ class TestChatSession:
         assert not _thread_path(thread.id).exists()
         assert not delete_thread("nonexistent")
 
+    def test_thread_path_traversal_blocked(self):
+        """Thread IDs containing path traversal chars must raise ValueError."""
+        from promptfix.chat_session import _thread_path
+        with pytest.raises(ValueError, match="Invalid thread_id"):
+            _thread_path("../config")
+        with pytest.raises(ValueError, match="Invalid thread_id"):
+            _thread_path("..\\windows\\system32")
+        with pytest.raises(ValueError, match="Invalid thread_id"):
+            _thread_path("foo/bar")
+
     def test_list_threads(self):
         t1 = create_thread(title="Alpha")
         t2 = create_thread(title="Beta")
@@ -337,6 +347,17 @@ class TestSnippets:
         result = _handle_command(thread, "/snippet delete deleteme", {})
         assert result.status == "command"
         assert get_snippet("deleteme") is None
+
+    def test_snippet_name_rejects_invalid_characters(self):
+        """Snippet names with path traversal or special chars must be rejected."""
+        from promptfix.snippets import add_snippet, get_snippet, delete_snippet
+        assert not add_snippet("../../../etc/passwd", "bad")
+        assert not add_snippet("name with spaces", "bad")
+        assert not add_snippet("name<script>", "bad")
+        # Valid names should still work
+        assert add_snippet("valid_name-123", "good")
+        assert get_snippet("valid_name-123") == "good"
+        delete_snippet("valid_name-123")
 
 
 class TestSuggestions:

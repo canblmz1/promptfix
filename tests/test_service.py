@@ -121,6 +121,14 @@ class TestOptimizeEndpoint:
         )
         assert resp.headers.get("Access-Control-Allow-Origin") != "https://evil.example.com"
 
+    def test_cors_prefix_bypass_blocked(self, client):
+        """Regression: 127.0.0.1.evil.com must NOT receive CORS headers."""
+        resp = client.get(
+            "/health",
+            headers={"Origin": "http://127.0.0.1.evil.com"},
+        )
+        assert resp.headers.get("Access-Control-Allow-Origin") is None
+
     def test_cors_allowed_for_localhost(self, client):
         resp = client.get(
             "/health",
@@ -325,6 +333,17 @@ class TestInvalidJsonHandling:
             content_type="text/plain",
         )
         assert resp.status_code == 400
+
+    def test_optimize_rejects_plaintext_without_json_header(self, client):
+        """With force=False, a POST without application/json must return 400."""
+        resp = client.post(
+            "/optimize",
+            data='{"text": "fix bug", "mode": "short"}',
+            content_type="text/plain",
+        )
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert "error" in data
 
 
 class TestThreadIdValidation:
