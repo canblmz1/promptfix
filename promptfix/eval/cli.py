@@ -87,7 +87,6 @@ def run(
     results = run_eval(cases, provider=provider, config=config, use_llm_judge=judge)
 
     if format == "json":
-        import json
         data = [{
             "name": r.case.name,
             "score": r.final_score,
@@ -96,7 +95,7 @@ def run(
             "duration_ms": r.duration_ms,
             "output": r.output,
         } for r in results]
-        console.print_json(json.dumps(data, indent=2))
+        console.print_json(data, indent=2)
     else:
         print_table(results, console)
 

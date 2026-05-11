@@ -41,6 +41,12 @@ class TestLoadSuite:
         cases = load_suite(f)
         assert cases == []
 
+    def test_invalid_yaml_raises_runtime_error(self, tmp_path):
+        bad = tmp_path / "bad.yaml"
+        bad.write_text("this is: [not: valid yaml: :::", encoding="utf-8")
+        with pytest.raises(RuntimeError, match="Invalid YAML"):
+            load_suite(bad)
+
 
 class TestRunEval:
     def test_eval_with_mock_provider(self):

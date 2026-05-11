@@ -87,8 +87,32 @@ def load_config() -> dict[str, Any]:
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             user_config = yaml.safe_load(f) or {}
-        return _deep_merge(DEFAULT_CONFIG, user_config)
-    return DEFAULT_CONFIG.copy()
+        config = _deep_merge(DEFAULT_CONFIG, user_config)
+    else:
+        config = DEFAULT_CONFIG.copy()
+    _validate_config(config)
+    return config
+
+
+_VALID_PROVIDERS = frozenset(DEFAULT_CONFIG["providers"].keys())
+_VALID_MODES = frozenset(DEFAULT_CONFIG["context"]["mode_limits"].keys())
+
+
+def _validate_config(config: dict[str, Any]) -> None:
+    """Raise a descriptive RuntimeError if the config contains invalid values."""
+    provider = config.get("provider", "")
+    if provider and provider not in _VALID_PROVIDERS:
+        raise RuntimeError(
+            f"Invalid provider '{provider}' in config. "
+            f"Valid options: {', '.join(sorted(_VALID_PROVIDERS))}."
+        )
+
+    default_mode = config.get("default_mode", "")
+    if default_mode and default_mode not in _VALID_MODES:
+        raise RuntimeError(
+            f"Invalid default_mode '{default_mode}' in config. "
+            f"Valid options: {', '.join(sorted(_VALID_MODES))}."
+        )
 
 
 def save_config(config: dict[str, Any]) -> None:

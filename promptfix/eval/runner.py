@@ -58,9 +58,16 @@ def load_suite(path: Path | str) -> list[EvalCase]:
 
 
 def _load_yaml_file(path: Path) -> list[EvalCase]:
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise RuntimeError(
+            f"Invalid YAML in eval suite: {path}\n"
+            f"Hint: check indentation and special characters.\n"
+            f"Detail: {exc}"
+        ) from exc
     cases = []
-    for item in data.get("tests", []):
+    for item in raw.get("tests", []):
         cases.append(EvalCase(
             name=item.get("name", "unnamed"),
             input=item.get("input", ""),
