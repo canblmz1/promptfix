@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import Any, cast
 
 import typer
 from rich.console import Console
@@ -73,7 +73,6 @@ def init():
 
     # 3. Model selection (optional override)
     from promptfix.config import DEFAULT_CONFIG
-    from typing import cast
     providers_cfg: dict[str, Any] = cast(dict[str, Any], DEFAULT_CONFIG["providers"])
     default_model = providers_cfg[provider_name].get("model", "")
     model_input = console.input(

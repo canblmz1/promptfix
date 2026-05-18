@@ -75,6 +75,27 @@ def clean_output(text: str) -> str:
     return text
 
 
+def extract_optimized_json(text: str) -> str | None:
+    """Try to parse the output as JSON and extract the 'optimized' field.
+
+    If the LLM responds with a JSON object containing an 'optimized' key,
+    return the value. Otherwise return None so the caller can fall back to
+    treating the whole text as the optimized prompt.
+    """
+    import json
+
+    # If the text looks like a JSON object, try to parse it
+    if not (text.strip().startswith("{") and text.strip().endswith("}")):
+        return None
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict) and "optimized" in data:
+            return str(data["optimized"]).strip()
+    except json.JSONDecodeError:
+        pass
+    return None
+
+
 def validate_output(output: str, intent: Intent) -> GuardResult:
     reasons: list[str] = []
     cleaned = clean_output(output)

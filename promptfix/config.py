@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 from dotenv import load_dotenv
@@ -93,8 +93,6 @@ def load_config() -> dict[str, Any]:
     _validate_config(config)
     return config
 
-
-from typing import cast
 
 _VALID_PROVIDERS: frozenset[str] = frozenset(
     cast(dict[str, Any], DEFAULT_CONFIG["providers"]).keys()
