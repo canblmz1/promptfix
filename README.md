@@ -48,9 +48,11 @@ available, and summarize the root cause, fix, and verification steps.
 | | Feature | Description |
 |---|---|---|
 | 🔄 | **One-Click Rewrite** | Right-click menu + global hotkeys (Windows) |
+| ⌨️ | **Keyboard Shortcuts** | Browser-level shortcuts (Ctrl+Shift+1–5) for every mode |
 | 🧠 | **Intent Detection** | Auto-detects bugfix/feature/performance/review in Turkish & English |
 | 🛡️ | **Output Guard** | Validates output, retries on failure, deterministic fallback |
-| � | **Quality Score** | Heuristic 0-100 score with breakdown: specificity, actionability, safety, and more |
+| 📐 | **Structured JSON Guard** | Automatically extracts optimized prompt from JSON responses |
+| | **Quality Score** | Heuristic 0-100 score with breakdown: specificity, actionability, safety, and more |
 | 🔀 | **Before/After Diff** | See exactly what changed between your original and the optimized prompt |
 | 💬 | **Threaded Chat** | Discord-like chat with streaming, snippets, slash commands |
 | 🧪 | **Evaluation Center** | Built-in benchmark suite: 40 tests, rule-based + LLM judge |
@@ -122,6 +124,7 @@ promptfix service
 | Raw Rewrite | `raw` | Unstructured free-form rewrite |
 
 **Browser — popup:** Click the extension icon to see:
+- **Quick Optimize** — type a rough prompt directly in the popup and click **Optimize Prompt** to get an optimised version without selecting text on the page. The result is shown inline and auto-copied to your clipboard.
 - **Service status** (Connected / Offline) with provider, model, and uptime
 - **Recent history** — each item shows:
   - Truncated input and output
