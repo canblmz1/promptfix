@@ -50,53 +50,56 @@ if sys.platform == "win32":
     CF_UNICODETEXT = 13
     GMEM_MOVEABLE = 0x0002
 
-
-def _clipboard_get() -> str:
-    """Read current clipboard text. Returns empty string on non-Windows."""
-    if sys.platform != "win32":
-        return ""
-    if not _user32.OpenClipboard(None):
-        return ""
-    try:
-        handle = _user32.GetClipboardData(CF_UNICODETEXT)
-        if not handle:
-            return ""
-        ptr = _kernel32.GlobalLock(handle)
-        if not ptr:
+    def _clipboard_get() -> str:
+        """Read current clipboard text."""
+        if not _user32.OpenClipboard(None):
             return ""
         try:
-            size = _kernel32.GlobalSize(handle)
-            if size == 0:
+            handle = _user32.GetClipboardData(CF_UNICODETEXT)
+            if not handle:
                 return ""
-            raw = ctypes.string_at(ptr, size)
-            return raw.decode("utf-16-le", errors="replace").rstrip("\x00")
+            ptr = _kernel32.GlobalLock(handle)
+            if not ptr:
+                return ""
+            try:
+                size = _kernel32.GlobalSize(handle)
+                if size == 0:
+                    return ""
+                raw = ctypes.string_at(ptr, size)
+                return raw.decode("utf-16-le", errors="replace").rstrip("\x00")
+            finally:
+                _kernel32.GlobalUnlock(handle)
         finally:
+            _user32.CloseClipboard()
+
+    def _clipboard_set(text: str) -> bool:
+        """Set clipboard text."""
+        if not _user32.OpenClipboard(None):
+            return False
+        try:
+            _user32.EmptyClipboard()
+            data = text.encode("utf-16-le") + b"\x00\x00"
+            handle = _kernel32.GlobalAlloc(GMEM_MOVEABLE, len(data))
+            if not handle:
+                return False
+            ptr = _kernel32.GlobalLock(handle)
+            if not ptr:
+                return False
+            ctypes.memmove(ptr, data, len(data))
             _kernel32.GlobalUnlock(handle)
-    finally:
-        _user32.CloseClipboard()
+            _user32.SetClipboardData(CF_UNICODETEXT, handle)
+            return True
+        finally:
+            _user32.CloseClipboard()
 
+else:
+    def _clipboard_get() -> str:
+        """Read current clipboard text. Returns empty string on non-Windows."""
+        return ""
 
-def _clipboard_set(text: str) -> bool:
-    """Set clipboard text. Returns False on non-Windows."""
-    if sys.platform != "win32":
+    def _clipboard_set(text: str) -> bool:
+        """Set clipboard text. Returns False on non-Windows."""
         return False
-    if not _user32.OpenClipboard(None):
-        return False
-    try:
-        _user32.EmptyClipboard()
-        data = text.encode("utf-16-le") + b"\x00\x00"
-        handle = _kernel32.GlobalAlloc(GMEM_MOVEABLE, len(data))
-        if not handle:
-            return False
-        ptr = _kernel32.GlobalLock(handle)
-        if not ptr:
-            return False
-        ctypes.memmove(ptr, data, len(data))
-        _kernel32.GlobalUnlock(handle)
-        _user32.SetClipboardData(CF_UNICODETEXT, handle)
-        return True
-    finally:
-        _user32.CloseClipboard()
 
 
 # ---------------------------------------------------------------------------

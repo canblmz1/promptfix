@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Generator
+from typing import Any
 
 import requests
 
@@ -18,7 +19,7 @@ class OllamaProvider(BaseProvider):
 
     def complete(self, messages: list[dict[str, str]], temperature: float = 0.2) -> str:
         url = f"{self.base_url}/api/chat"
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "stream": False,
@@ -36,7 +37,7 @@ class OllamaProvider(BaseProvider):
     ) -> Generator[str, None, None]:
         """Stream completion chunks from Ollama."""
         url = f"{self.base_url}/api/chat"
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "stream": True,

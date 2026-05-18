@@ -6,6 +6,7 @@ import json
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from typing import Any
 
 import requests
 
@@ -80,7 +81,7 @@ class OpenAILikeProvider(BaseProvider):
 
     def complete(self, messages: list[dict[str, str]], temperature: float = 0.2) -> str:
         url = f"{self.base_url}/chat/completions"
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
@@ -96,7 +97,7 @@ class OpenAILikeProvider(BaseProvider):
         self, messages: list[dict[str, str]], temperature: float = 0.2
     ) -> Generator[str, None, None]:
         url = f"{self.base_url}/chat/completions"
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
