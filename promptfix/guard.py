@@ -96,9 +96,8 @@ def validate_output(output: str, intent: Intent) -> GuardResult:
                 reasons.append(f"contains broadening word '{word}' when refactor not allowed")
                 break
 
-    if "minimal_changes" in intent.constraints:
-        if not any(p in lowered for p in MINIMAL_PHRASES):
-            reasons.append("missing minimal/targeted language for minimal_changes constraint")
+    if "minimal_changes" in intent.constraints and not any(p in lowered for p in MINIMAL_PHRASES):
+        reasons.append("missing minimal/targeted language for minimal_changes constraint")
 
     if intent.keywords:
         has_keyword = any(kw.lower() in lowered for kw in intent.keywords[:5])

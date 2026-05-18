@@ -1,6 +1,5 @@
 """Tests for the intent parser."""
 
-import pytest
 
 from promptfix.intent import parse_intent
 

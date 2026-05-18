@@ -9,7 +9,6 @@ from typing import Any
 
 from promptfix.config import get_config_dir
 
-
 MAX_HISTORY = 200
 
 
@@ -74,7 +73,7 @@ def clear_history() -> int:
     if not path.exists():
         return 0
     lines = path.read_text(encoding="utf-8").strip().split("\n")
-    count = len([l for l in lines if l.strip()])
+    count = len([line for line in lines if line.strip()])
     path.unlink()
     return count
 

@@ -6,7 +6,7 @@ import time
 
 from promptfix.config import get_provider_config, load_config
 from promptfix.context import build_context
-from promptfix.guard import GuardResult, clean_output, get_fallback, validate_output
+from promptfix.guard import clean_output, get_fallback, validate_output
 from promptfix.intent import Intent, parse_intent
 from promptfix.providers.base import BaseProvider
 from promptfix.providers.groq import GroqProvider

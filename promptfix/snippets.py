@@ -7,8 +7,6 @@ with slash commands like /snippet add <name> <content>.
 from __future__ import annotations
 
 import json
-import time
-from pathlib import Path
 
 from promptfix.config import get_config_dir
 

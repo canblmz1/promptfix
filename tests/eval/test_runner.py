@@ -1,13 +1,12 @@
 """Tests for the eval engine."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 import yaml
 
-from promptfix.eval.runner import load_suite, run_eval, EvalCase
-from promptfix.eval.scorer import run_assertions, run_llm_judge, _parse_judge_response
+from promptfix.eval.runner import EvalCase, load_suite, run_eval
+from promptfix.eval.scorer import _parse_judge_response, run_assertions, run_llm_judge
 
 
 class TestLoadSuite:

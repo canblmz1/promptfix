@@ -8,15 +8,20 @@ Discord-like UX:
 
 from __future__ import annotations
 
-import time
 from collections.abc import Generator
 from typing import Any
 
-from promptfix.chat_session import ChatThread, ChatMessage, save_thread, load_thread, list_threads, create_thread, delete_thread
+from promptfix.chat_session import (
+    ChatThread,
+    create_thread,
+    delete_thread,
+    list_threads,
+    load_thread,
+    save_thread,
+)
 from promptfix.config import load_config
 from promptfix.rewriter import create_provider, rewrite
 from promptfix.templates import SYSTEM_PROMPT
-
 
 VALID_MODES = {"fast", "short", "agent", "raw", "explain"}
 
@@ -88,8 +93,8 @@ def process_message(
         cleaned = clean_output(raw_output)
 
         # Validate
-        from promptfix.intent import parse_intent
         from promptfix.guard import validate_output
+        from promptfix.intent import parse_intent
         intent = parse_intent(text)
         val_result = validate_output(cleaned, intent)
 
@@ -186,8 +191,8 @@ def process_message_stream(
         cleaned = clean_output(full_content)
 
         # Validate
-        from promptfix.intent import parse_intent
         from promptfix.guard import validate_output
+        from promptfix.intent import parse_intent
         intent = parse_intent(text)
         val_result = validate_output(cleaned, intent)
 
@@ -367,7 +372,7 @@ Use `:snippet_name:` in any message to auto-expand a saved snippet.
 
 def _handle_snippet_command(thread: ChatThread, arg: str) -> ChatResult:
     """Handle /snippet subcommands."""
-    from promptfix.snippets import add_snippet, get_snippet, delete_snippet, list_snippets
+    from promptfix.snippets import add_snippet, delete_snippet, get_snippet, list_snippets
 
     parts = arg.strip().split(maxsplit=1)
     if not parts:
@@ -420,10 +425,10 @@ def _handle_snippet_command(thread: ChatThread, arg: str) -> ChatResult:
 
     elif subcmd == "use":
         name = rest.strip()
-        content = get_snippet(name)
-        if content:
+        snippet_content = get_snippet(name)
+        if snippet_content:
             return ChatResult(
-                f"**{name}**: {content}",
+                f"**{name}**: {snippet_content}",
                 thread.current_mode,
                 "command",
             )
@@ -457,7 +462,7 @@ def _handle_snippet_command(thread: ChatThread, arg: str) -> ChatResult:
 
 def _handle_preset_command(thread: ChatThread, arg: str, config: dict) -> ChatResult:
     """Handle /preset subcommands."""
-    from promptfix.presets import list_presets, get_preset
+    from promptfix.presets import get_preset, list_presets
 
     parts = arg.strip().split(maxsplit=1)
     if not parts or parts[0].lower() == "list":
@@ -542,15 +547,15 @@ def get_suggestions(text: str, thread: ChatThread, limit: int = 5) -> list[dict[
     if not text.startswith("/") and not text.startswith(":"):
         seen = set()
         for msg in reversed(thread.messages):
-            if msg.role == "user" and msg.content.lower().startswith(text_lower) and msg.content != text:
-                if msg.content not in seen:
-                    seen.add(msg.content)
-                    suggestions.append({
-                        "type": "history",
-                        "label": msg.content[:50] + ("..." if len(msg.content) > 50 else ""),
-                        "detail": "Recent message",
-                    })
-                    if len(suggestions) >= limit:
-                        break
+            if (msg.role == "user" and msg.content.lower().startswith(text_lower)
+                    and msg.content != text and msg.content not in seen):
+                seen.add(msg.content)
+                suggestions.append({
+                    "type": "history",
+                    "label": msg.content[:50] + ("..." if len(msg.content) > 50 else ""),
+                    "detail": "Recent message",
+                })
+                if len(suggestions) >= limit:
+                    break
 
     return suggestions[:limit]

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from promptfix.diff import compute_diff, format_diff_rich, DiffResult
+from promptfix.diff import DiffResult, compute_diff, format_diff_rich
 
 
 class TestComputeDiff:

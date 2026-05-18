@@ -4,7 +4,6 @@ The actual hotkey registration and tray are OS-dependent and tested manually.
 These tests verify the rewrite pipeline that hotkeys use.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
 from promptfix.rewriter import rewrite
@@ -98,6 +97,7 @@ class TestHotkeyRewriteFlow:
             },
             provider=mock,
         )
+        assert result.optimized
         # The rewriter still runs (whitespace is passed through)
         # The hotkey handler should check for empty *before* calling rewrite
 

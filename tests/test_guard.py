@@ -1,6 +1,5 @@
 """Tests for the output guard."""
 
-import pytest
 
 from promptfix.guard import clean_output, get_fallback, validate_output
 from promptfix.intent import parse_intent

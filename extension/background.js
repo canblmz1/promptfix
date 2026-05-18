@@ -152,6 +152,72 @@ function sendToTab(tabId, message) {
   });
 }
 
+const COMMAND_MODE_MAP = {
+  "optimize-short": "short",
+  "optimize-fast": "fast",
+  "optimize-agent": "agent",
+  "optimize-explain": "explain",
+  "optimize-raw": "raw",
+};
+
+// --- Keyboard shortcut handler ---
+
+chrome.commands.onCommand.addListener(async (command) => {
+  const mode = COMMAND_MODE_MAP[command];
+  if (!mode) return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  // Get selected text by injecting a tiny script
+  let selectedText = "";
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => window.getSelection().toString(),
+    });
+    selectedText = results?.[0]?.result || "";
+  } catch {
+    sendToTab(tab.id, {
+      action: "showError",
+      error: "Cannot access selected text on this page.",
+    });
+    return;
+  }
+
+  if (!selectedText.trim()) {
+    sendToTab(tab.id, {
+      action: "showError",
+      error: "No text selected. Select some text first.",
+    });
+    return;
+  }
+
+  await ensureContentScript(tab.id);
+  sendToTab(tab.id, { action: "showLoading" });
+
+  try {
+    const result = await callService(selectedText.trim(), mode, { include_diff: true });
+    sendToTab(tab.id, {
+      action: "replaceSelection",
+      text: result.optimized,
+    });
+    writeCache({
+      input:           selectedText.trim(),
+      output:          result.optimized,
+      mode:            result.mode || mode,
+      quality_score:   result.quality_score   ?? null,
+      score_breakdown: result.score_breakdown  ?? null,
+      diff:            result.diff             ?? null,
+    }).catch(() => {});
+  } catch (err) {
+    sendToTab(tab.id, {
+      action: "showError",
+      error: err.message,
+    });
+  }
+});
+
 // --- Call the local PromptFix service ---
 
 async function callService(text, mode, extraBody = {}) {
