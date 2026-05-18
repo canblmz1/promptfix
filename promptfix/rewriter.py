@@ -6,7 +6,7 @@ import time
 
 from promptfix.config import get_provider_config, load_config
 from promptfix.context import build_context
-from promptfix.guard import GuardResult, clean_output, get_fallback, validate_output
+from promptfix.guard import clean_output, get_fallback, validate_output
 from promptfix.intent import Intent, parse_intent
 from promptfix.providers.base import BaseProvider
 from promptfix.providers.groq import GroqProvider
@@ -147,6 +147,12 @@ def rewrite(
         )
 
     cleaned = clean_output(raw_output)
+
+    # If the LLM returned structured JSON, extract the optimized field
+    from promptfix.guard import extract_optimized_json
+    structured = extract_optimized_json(cleaned)
+    if structured is not None:
+        cleaned = structured
 
     validation = config.get("validation", {})
     if validation.get("enabled", True):

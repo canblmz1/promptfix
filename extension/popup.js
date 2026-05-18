@@ -14,6 +14,9 @@ const els = {
   uptime: document.getElementById("uptime"),
   history: document.getElementById("history"),
   modeBtns: document.querySelectorAll(".mode-btn"),
+  quickInput: document.getElementById("quickInput"),
+  quickOptimize: document.getElementById("quickOptimize"),
+  quickResult: document.getElementById("quickResult"),
 };
 
 // --- Helpers ---
@@ -292,6 +295,84 @@ async function loadStatus() {
     els.history.innerHTML = '<div class="empty">Service unavailable</div>';
   }
 }
+
+// --- Call the local PromptFix service ---
+
+async function callService(text, mode, extraBody = {}) {
+  const [syncItems, localItems] = await Promise.all([
+    chrome.storage.sync.get({ serviceUrl: SERVICE_URL_DEFAULT }),
+    chrome.storage.local.get({ serviceToken: "" }),
+  ]);
+  const settings = { serviceUrl: syncItems.serviceUrl, serviceToken: localItems.serviceToken };
+
+  const baseUrl = settings.serviceUrl.replace(/\/+$/, "");
+  const url = `${baseUrl}/optimize`;
+  const headers = { "Content-Type": "application/json" };
+  if (settings.serviceToken) {
+    headers["Authorization"] = `Bearer ${settings.serviceToken}`;
+  }
+
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ text, mode, ...extraBody }),
+    });
+  } catch (e) {
+    throw new Error("PromptFix service is not running. Run: promptfix service");
+  }
+
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.error || `Service returned ${resp.status}`);
+  }
+
+  return await resp.json();
+}
+
+// --- Quick Optimize ---
+
+els.quickOptimize.addEventListener("click", async () => {
+  const text = els.quickInput.value.trim();
+  if (!text) {
+    els.quickResult.textContent = "Please enter some text first.";
+    els.quickResult.style.display = "block";
+    els.quickResult.style.color = "#f85149";
+    return;
+  }
+
+  const mode = await chrome.storage.sync.get({ defaultMode: "short" }).then((s) => s.defaultMode);
+  els.quickOptimize.disabled = true;
+  els.quickOptimize.textContent = "Optimizing…";
+  els.quickResult.style.display = "none";
+
+  try {
+    const result = await callService(text, mode, { include_diff: true });
+    const output = result.optimized || "";
+
+    // Show result inline
+    els.quickResult.innerHTML = `<div style="white-space:pre-wrap;word-break:break-word;">${escapeHtml(output)}</div>`;
+    els.quickResult.style.display = "block";
+    els.quickResult.style.color = "#c9d1d9";
+
+    // Auto-copy to clipboard (fire-and-forget, must not block UI)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(output).catch(() => {});
+    }
+
+    // Refresh history so the new item appears
+    const serviceUrl = await getServiceUrl();
+    await loadHistory(serviceUrl);
+  } catch (err) {
+    els.quickResult.textContent = err.message;
+    els.quickResult.style.display = "block";
+    els.quickResult.style.color = "#f85149";
+  } finally {
+    els.quickOptimize.disabled = false;
+    els.quickOptimize.textContent = "Optimize Prompt";
+  }
+});
 
 // --- Actions ---
 

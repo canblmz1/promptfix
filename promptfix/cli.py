@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import json
 import time
+from typing import Any, cast
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
-from rich.align import Align
+from rich.panel import Panel
 
 from promptfix.config import ensure_config, get_config_path, get_provider_config, load_config, save_config
-from promptfix.rewriter import RewriteResult, create_provider, rewrite
 from promptfix.eval.cli import app as eval_cli_app
+from promptfix.rewriter import create_provider, rewrite
 
 app = typer.Typer(name="promptfix", help="Coding-agent prompt rewriter")
 app.add_typer(eval_cli_app, name="eval", help="PromptFix Evaluation Center")
@@ -73,7 +73,8 @@ def init():
 
     # 3. Model selection (optional override)
     from promptfix.config import DEFAULT_CONFIG
-    default_model = DEFAULT_CONFIG["providers"][provider_name].get("model", "")
+    providers_cfg: dict[str, Any] = cast(dict[str, Any], DEFAULT_CONFIG["providers"])
+    default_model = providers_cfg[provider_name].get("model", "")
     model_input = console.input(
         f"\nModel name [[dim]{default_model}[/dim]] (Enter to keep default): "
     ).strip()
@@ -87,7 +88,7 @@ def init():
         config.setdefault("service", {})["token"] = token
         console.print(f"\n[bold yellow]Service token (copy to extension settings):[/bold yellow] [cyan]{token}[/cyan]")
     else:
-        console.print(f"\n[dim]Existing service token kept.[/dim]")
+        console.print("\n[dim]Existing service token kept.[/dim]")
 
     # 5. Save config
     if provider_name not in config.get("providers", {}):
@@ -133,8 +134,9 @@ def once(
         console.print(Panel(result.optimized, title=f"[green]{result.mode}[/green] | {result.provider} | {result.duration_ms}ms | {result.validation_status}{score_str}"))
 
         if diff:
-            from promptfix.diff import compute_diff, format_diff_rich
             from rich.panel import Panel as RichPanel
+
+            from promptfix.diff import compute_diff, format_diff_rich
             diff_result = compute_diff(text, result.optimized)
             console.print(RichPanel(
                 format_diff_rich(diff_result),
@@ -189,7 +191,7 @@ def chat(
     mode: str = typer.Option(None, "--mode", "-m", help="Start mode: fast, short, agent, raw, explain"),
 ):
     """Start an interactive chat session (Discord-like UX)."""
-    from promptfix.chat_engine import process_message, VALID_MODES
+    from promptfix.chat_engine import VALID_MODES, process_message
     from promptfix.chat_session import create_thread, load_thread
 
     config = load_config()
@@ -207,11 +209,11 @@ def chat(
     # Load or create thread
     if thread_id:
         import re as _re
-        _UUID_RE = _re.compile(
+        _uuid_re = _re.compile(
             r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
             _re.IGNORECASE,
         )
-        if not _UUID_RE.match(thread_id):
+        if not _uuid_re.match(thread_id):
             console.print(f"[red]Invalid thread ID (must be UUID v4): {thread_id}[/red]")
             raise typer.Exit(1)
         thread = load_thread(thread_id)
@@ -345,7 +347,7 @@ def setup():
     config = ensure_config()
 
     provider = typer.prompt("Provider", default=config.get("provider", "groq"),
-                           type=typer.Choice(["groq", "openai_compatible", "ollama"]))
+                           type=typer.Choice(["groq", "openai_compatible", "ollama"]))  # type: ignore[attr-defined]
     config["provider"] = provider
 
     pcfg = get_provider_config(config, provider)
@@ -359,7 +361,7 @@ def setup():
         config["providers"]["ollama"]["model"] = model
 
     default_mode = typer.prompt("Default mode", default="short",
-                                type=typer.Choice(["fast", "short", "agent", "raw"]))
+                                type=typer.Choice(["fast", "short", "agent", "raw"]))  # type: ignore[attr-defined]
     config["default_mode"] = default_mode
     save_config(config)
     console.print(f"\n[green]Config saved to {get_config_path()}[/green]")
@@ -488,7 +490,7 @@ def preset_cmd(
     promptfix preset add my-preset --desc "..." --hint "..." --mode short
     promptfix preset delete my-preset
     """
-    from promptfix.presets import list_presets, get_preset, add_user_preset, delete_user_preset
+    from promptfix.presets import add_user_preset, delete_user_preset, get_preset, list_presets
 
     if action == "list":
         presets = list_presets()
@@ -578,8 +580,8 @@ def score(
     intent_text: str = typer.Option("fix a bug", "--intent", help="Original intent text for alignment scoring"),
 ):
     """Score a rewritten prompt on 5 quality dimensions (0-100)."""
-    from promptfix.scorer import score_output
     from promptfix.intent import parse_intent
+    from promptfix.scorer import score_output
 
     intent = parse_intent(intent_text)
     result = score_output(text, intent, mode)

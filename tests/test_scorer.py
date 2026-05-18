@@ -1,10 +1,8 @@
 """Tests for the prompt quality scorer."""
 
-import pytest
-from unittest.mock import MagicMock
 
-from promptfix.scorer import score_output, ScoreResult
-from promptfix.intent import parse_intent, Intent
+from promptfix.intent import parse_intent
+from promptfix.scorer import ScoreResult, score_output
 
 
 class TestScoreOutput:
@@ -98,8 +96,8 @@ class TestScoreOutput:
 
     def test_quality_score_in_rewrite_result(self):
         """RewriteResult.quality_score is populated from scorer."""
-        from promptfix.rewriter import RewriteResult
         from promptfix.intent import parse_intent
+        from promptfix.rewriter import RewriteResult
 
         intent = parse_intent("fix bug")
         r = RewriteResult(

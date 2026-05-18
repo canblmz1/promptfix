@@ -9,10 +9,10 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
+from promptfix.chat_engine import get_suggestions, process_message, process_message_stream
+from promptfix.chat_session import create_thread, delete_thread, list_threads, load_thread
 from promptfix.config import load_config
 from promptfix.rewriter import create_provider, rewrite
-from promptfix.chat_engine import process_message, process_message_stream, get_suggestions
-from promptfix.chat_session import create_thread, load_thread, list_threads, delete_thread
 
 app = Flask(__name__)
 
@@ -219,7 +219,7 @@ def chat_endpoint():
 
     try:
         provider = _get_provider()
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Provider unavailable"}), 500
 
     # Load or create thread
@@ -275,7 +275,7 @@ def chat_stream_endpoint():
 
     try:
         provider = _get_provider()
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Provider unavailable"}), 500
 
     # Load or create thread
@@ -410,13 +410,13 @@ def run_service(host: str = "127.0.0.1", port: int = 52849):
         print("  Service will start but requests may fail.")
 
     print(f"\n  PromptFix service → http://{host}:{port}")
-    print(f"  POST /optimize   — rewrite a prompt")
-    print(f"  POST /chat       — chat with context")
-    print(f"  POST /chat/stream — chat with streaming")
-    print(f"  GET  /suggestions — autocomplete suggestions")
-    print(f"  GET  /threads    — list chat threads")
-    print(f"  GET  /health     — check status")
-    print(f"  GET  /history    — recent optimizations\n")
+    print("  POST /optimize   — rewrite a prompt")
+    print("  POST /chat       — chat with context")
+    print("  POST /chat/stream — chat with streaming")
+    print("  GET  /suggestions — autocomplete suggestions")
+    print("  GET  /threads    — list chat threads")
+    print("  GET  /health     — check status")
+    print("  GET  /history    — recent optimizations\n")
     app.run(host=host, port=port, debug=False)
 
 

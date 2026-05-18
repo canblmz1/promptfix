@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,9 +10,9 @@ from typing import Any
 
 import yaml
 
-from promptfix.eval.scorer import ScoreResult, run_assertions, run_llm_judge
-from promptfix.rewriter import rewrite, create_provider
 from promptfix.config import load_config
+from promptfix.eval.scorer import ScoreResult, run_assertions, run_llm_judge
+from promptfix.rewriter import create_provider, rewrite
 
 
 @dataclass
@@ -116,10 +117,8 @@ def run_eval(
         # Optional LLM judge
         llm_score = None
         if use_llm_judge:
-            try:
+            with contextlib.suppress(Exception):
                 llm_score = run_llm_judge(output, case.input, case.mode, provider)
-            except Exception:
-                pass
 
         results.append(EvalResult(
             case=case,

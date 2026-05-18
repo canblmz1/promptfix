@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
 
 import promptfix
-from promptfix.eval.runner import load_suite, run_eval
-from promptfix.eval.report import print_table, generate_html
 from promptfix.config import load_config
+from promptfix.eval.report import generate_html, print_table
+from promptfix.eval.runner import load_suite, run_eval
 from promptfix.rewriter import create_provider
 
 app = typer.Typer(help="PromptFix Evaluation Center", invoke_without_command=True)
@@ -29,7 +31,7 @@ class _StubProvider:
 
     model = "stub"
 
-    def complete(self, messages: list[dict]) -> str:
+    def complete(self, messages: list[dict[str, str]], temperature: float = 0.2) -> str:
         from promptfix.guard import get_fallback
         from promptfix.intent import parse_intent
         # Pull the user's original text from the last user message
@@ -39,10 +41,10 @@ class _StubProvider:
         intent = parse_intent(user_text)
         return get_fallback(intent)
 
-    def stream_complete(self, messages: list[dict]):
+    def stream_complete(self, messages: list[dict[str, str]], temperature: float = 0.2):
         yield self.complete(messages)
 
-    def health_check(self):
+    def health_check(self) -> tuple[bool, str]:
         return True, "stub (no API key -- deterministic fallback mode)"
 
 
@@ -62,7 +64,7 @@ def run(
 
     config = load_config()
 
-    provider = None
+    provider: Any = None
     try:
         provider = create_provider(config)
     except RuntimeError as e:
@@ -95,7 +97,7 @@ def run(
             "duration_ms": r.duration_ms,
             "output": r.output,
         } for r in results]
-        console.print_json(data, indent=2)
+        console.print_json(json.dumps(data, indent=2))
     else:
         print_table(results, console)
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from promptfix.intent import Intent
 
-
 SYSTEM_PROMPT = """\
 You are PromptFix, a coding-agent prompt rewriter.
 
@@ -58,12 +57,12 @@ def build_rewrite_prompt(
         f"Selected text:\n<<<\n{selected_text}\n>>>",
         "",
         "Detected intent:",
-        f"<<<",
+        "<<<",
         f"type: {intent.task_type}",
         f"domain: {intent.domain}",
         f"constraints: {', '.join(intent.constraints) if intent.constraints else 'none'}",
         f"allow_refactor: {intent.allow_refactor}",
-        f">>>",
+        ">>>",
     ]
 
     if preset_hint:

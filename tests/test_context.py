@@ -1,6 +1,5 @@
 """Tests for the ContextLite layer."""
 
-import pytest
 
 from promptfix.context import SAFE_RULES, build_context
 from promptfix.intent import parse_intent

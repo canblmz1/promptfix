@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from promptfix.guard import clean_output
 from promptfix.intent import parse_intent
 
 

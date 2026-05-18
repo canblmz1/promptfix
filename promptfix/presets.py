@@ -7,8 +7,8 @@ Usage in chat: /preset <name>
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Built-in presets
@@ -112,7 +112,7 @@ def _load_user_presets() -> dict[str, dict[str, str]]:
     path = _get_presets_file()
     if path.exists():
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json.loads(path.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
         except (json.JSONDecodeError, OSError):
             return {}
     return {}

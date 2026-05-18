@@ -1,9 +1,6 @@
 """Tests for eval report generation."""
 
-from pathlib import Path
-from unittest.mock import MagicMock
 
-import pytest
 
 from promptfix.eval.report import generate_html, print_table
 from promptfix.eval.runner import EvalCase, EvalResult

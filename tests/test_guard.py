@@ -1,6 +1,5 @@
 """Tests for the output guard."""
 
-import pytest
 
 from promptfix.guard import clean_output, get_fallback, validate_output
 from promptfix.intent import parse_intent
@@ -163,3 +162,35 @@ class TestFallback:
         intent = parse_intent("fix {0!r} edge case başka yeri bozma")
         fallback = get_fallback(intent)
         assert isinstance(fallback, str)
+
+
+class TestExtractOptimizedJson:
+    """Test structured JSON output extraction."""
+
+    def test_extracts_optimized_field(self):
+        from promptfix.guard import extract_optimized_json
+        text = '{"optimized": "Fix the login bug with minimal changes."}'
+        assert extract_optimized_json(text) == "Fix the login bug with minimal changes."
+
+    def test_returns_none_for_plain_text(self):
+        from promptfix.guard import extract_optimized_json
+        assert extract_optimized_json("Fix the login bug.") is None
+
+    def test_returns_none_for_json_without_optimized(self):
+        from promptfix.guard import extract_optimized_json
+        assert extract_optimized_json('{"mode": "short"}') is None
+
+    def test_handles_json_with_whitespace(self):
+        from promptfix.guard import extract_optimized_json
+        text = '  \n  {"optimized": "Investigate and fix."}  \n  '
+        assert extract_optimized_json(text) == "Investigate and fix."
+
+    def test_returns_none_for_malformed_json(self):
+        from promptfix.guard import extract_optimized_json
+        assert extract_optimized_json('{"optimized": "missing closing brace') is None
+
+    def test_extracts_after_clean_output(self):
+        from promptfix.guard import clean_output, extract_optimized_json
+        raw = '```json\n{"optimized": "Fix the bug."}\n```'
+        cleaned = clean_output(raw)
+        assert extract_optimized_json(cleaned) == "Fix the bug."

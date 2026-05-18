@@ -5,18 +5,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from promptfix.chat_engine import VALID_MODES, _handle_command, get_suggestions, process_message, process_message_stream
 from promptfix.chat_session import (
-    ChatThread,
     ChatMessage,
+    _thread_path,
     create_thread,
-    load_thread,
-    save_thread,
     delete_thread,
     list_threads,
-    _thread_path,
+    load_thread,
+    save_thread,
 )
-from promptfix.chat_engine import process_message, process_message_stream, VALID_MODES, _handle_command, get_suggestions
-from promptfix.snippets import add_snippet, get_snippet, delete_snippet, list_snippets, expand_snippets
+from promptfix.snippets import add_snippet, delete_snippet, expand_snippets, get_snippet, list_snippets
 
 
 class TestChatSession:
@@ -350,7 +349,7 @@ class TestSnippets:
 
     def test_snippet_name_rejects_invalid_characters(self):
         """Snippet names with path traversal or special chars must be rejected."""
-        from promptfix.snippets import add_snippet, get_snippet, delete_snippet
+        from promptfix.snippets import add_snippet, delete_snippet, get_snippet
         assert not add_snippet("../../../etc/passwd", "bad")
         assert not add_snippet("name with spaces", "bad")
         assert not add_snippet("name<script>", "bad")
@@ -391,14 +390,14 @@ class TestConfigSaveChmod:
     def test_save_config_chmod_unix(self, tmp_path, monkeypatch):
         """On non-Windows platforms, save_config must call chmod(0o600) on the config file."""
         import stat
+        from unittest.mock import patch
+
         import promptfix.config as cfg_mod
-        from unittest.mock import patch, MagicMock
 
         config_path = tmp_path / "config.yaml"
         monkeypatch.setattr(cfg_mod, "get_config_path", lambda: config_path)
 
         chmod_calls = []
-        original_chmod = cfg_mod.Path.chmod
 
         def capture_chmod(self, mode):
             chmod_calls.append((str(self), mode))

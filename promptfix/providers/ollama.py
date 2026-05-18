@@ -29,7 +29,7 @@ class OllamaProvider(BaseProvider):
             raise RuntimeError(f"Ollama model '{self.model}' not found. Run: ollama pull {self.model}")
         resp.raise_for_status()
         data = resp.json()
-        return data.get("message", {}).get("content", "")
+        return str(data.get("message", {}).get("content", ""))
 
     def stream_complete(
         self, messages: list[dict[str, str]], temperature: float = 0.2

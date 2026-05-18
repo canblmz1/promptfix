@@ -4,8 +4,9 @@ These test the Python-side behavior that the extension depends on.
 The actual DOM replacement is JS-only and tested via the test page.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from promptfix.service import app
 
@@ -282,9 +283,10 @@ class TestHistoryQualityScore:
 
     def test_log_entry_accepts_quality_score(self):
         """log_entry must accept quality_score without raising."""
-        from promptfix.history import log_entry
-        import tempfile, os
+        import tempfile
         from unittest.mock import patch as mpatch
+
+        from promptfix.history import log_entry
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with mpatch("promptfix.history._history_path",
@@ -303,9 +305,11 @@ class TestHistoryQualityScore:
 
     def test_log_entry_stores_quality_score(self):
         """quality_score must appear in the stored JSONL entry."""
-        import json, tempfile
+        import json
+        import tempfile
         from pathlib import Path
         from unittest.mock import patch as mpatch
+
         from promptfix.history import log_entry
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -326,9 +330,11 @@ class TestHistoryQualityScore:
 
     def test_log_entry_without_quality_score_omits_field(self):
         """Without quality_score, the field must not appear in the JSONL entry."""
-        import json, tempfile
+        import json
+        import tempfile
         from pathlib import Path
         from unittest.mock import patch as mpatch
+
         from promptfix.history import log_entry
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -494,9 +500,9 @@ class TestCacheDataIntegrity:
         assert entry["quality_score"] is None
 
     def test_cache_max_5_entries(self):
-        """Simulated cache must not exceed CACHE_MAX=5 entries."""
-        CACHE_MAX = 5
-        CACHE_TTL_MS = 24 * 60 * 60 * 1000
+        """Simulated cache must not exceed cache_max=5 entries."""
+        cache_max = 5
+        cache_ttl_ms = 24 * 60 * 60 * 1000
         import time
 
         existing = [
@@ -513,24 +519,24 @@ class TestCacheDataIntegrity:
         # Simulate prepend + trim
         now = int(time.time() * 1000)
         cache = [new_entry] + existing
-        cache = [e for e in cache if now - e["timestamp"] < CACHE_TTL_MS]
-        cache = cache[:CACHE_MAX]
+        cache = [e for e in cache if now - e["timestamp"] < cache_ttl_ms]
+        cache = cache[:cache_max]
 
-        assert len(cache) == CACHE_MAX
+        assert len(cache) == cache_max
 
     def test_cache_drops_entries_older_than_24h(self):
         """Cache entries older than 24 hours must be removed."""
         import time
-        CACHE_TTL_MS = 24 * 60 * 60 * 1000
+        cache_ttl_ms = 24 * 60 * 60 * 1000
 
         now = int(time.time() * 1000)
-        old_ts  = now - CACHE_TTL_MS - 1000   # 1 second past TTL
+        old_ts  = now - cache_ttl_ms - 1000   # 1 second past TTL
         new_ts  = now - 3600 * 1000           # 1 hour ago, still valid
 
         old_entry = self._make_safe_cache_entry(input="old", output="o", mode="short", timestamp=old_ts)
         new_entry = self._make_safe_cache_entry(input="new", output="n", mode="short", timestamp=new_ts)
         cache = [old_entry, new_entry]
-        cache = [e for e in cache if now - e["timestamp"] < CACHE_TTL_MS]
+        cache = [e for e in cache if now - e["timestamp"] < cache_ttl_ms]
 
         assert len(cache) == 1
         assert cache[0]["input"] == "new"
@@ -590,3 +596,72 @@ class TestDiffLineClassification:
         for line in result.unified.split("\n"):
             cls = self._classify(line)
             assert cls in ("add", "del", "hdr", "ctx")
+
+
+class TestKeyboardShortcuts:
+    """Test the command-to-mode mapping that background.js uses for keyboard shortcuts."""
+
+    def _command_to_mode(self, command):
+        """Mirror of COMMAND_MODE_MAP in background.js."""
+        mapping = {
+            "optimize-short": "short",
+            "optimize-fast": "fast",
+            "optimize-agent": "agent",
+            "optimize-explain": "explain",
+            "optimize-raw": "raw",
+        }
+        return mapping.get(command)
+
+    @pytest.mark.parametrize("command,expected_mode", [
+        ("optimize-short", "short"),
+        ("optimize-fast", "fast"),
+        ("optimize-agent", "agent"),
+        ("optimize-explain", "explain"),
+        ("optimize-raw", "raw"),
+    ])
+    def test_all_commands_map_to_correct_mode(self, command, expected_mode):
+        assert self._command_to_mode(command) == expected_mode
+
+    def test_unknown_command_returns_none(self):
+        """Unknown commands must be ignored (return None)."""
+        assert self._command_to_mode("optimize-unknown") is None
+        assert self._command_to_mode("random-command") is None
+        assert self._command_to_mode("") is None
+
+    def test_command_names_are_unique(self):
+        """Each command must map to exactly one mode."""
+        mapping = {
+            "optimize-short": "short",
+            "optimize-fast": "fast",
+            "optimize-agent": "agent",
+            "optimize-explain": "explain",
+            "optimize-raw": "raw",
+        }
+        assert len(mapping) == len(set(mapping.values())), "Duplicate mode values found"
+
+    def test_all_modes_have_a_command(self):
+        """Every mode used by the extension must have a keyboard command."""
+        modes_from_commands = {
+            self._command_to_mode(cmd) for cmd in [
+                "optimize-short", "optimize-fast", "optimize-agent",
+                "optimize-explain", "optimize-raw",
+            ]
+        }
+        expected_modes = {"short", "fast", "agent", "explain", "raw"}
+        assert modes_from_commands == expected_modes
+
+    @patch("promptfix.service._get_provider")
+    @patch("promptfix.service._get_config")
+    def test_service_contract_for_shortcut_modes(self, mock_config, mock_provider, client):
+        """All shortcut modes must return the same response shape the extension expects."""
+        mock_config.return_value = _MOCK_CONFIG
+        mock_prov = MagicMock()
+        mock_prov.complete.return_value = "Optimized via keyboard shortcut."
+        mock_provider.return_value = mock_prov
+
+        for mode in ["short", "fast", "agent", "explain", "raw"]:
+            resp = client.post("/optimize", json={"text": "fix bug via shortcut", "mode": mode})
+            assert resp.status_code == 200, f"Mode {mode} failed"
+            data = resp.get_json()
+            for field in ("optimized", "mode", "provider", "duration_ms", "valid"):
+                assert field in data, f"Missing {field} for mode {mode}"

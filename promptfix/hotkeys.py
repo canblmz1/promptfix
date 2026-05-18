@@ -14,9 +14,8 @@ from __future__ import annotations
 
 import ctypes
 import sys
-import time
 import threading
-
+import time
 
 # ---------------------------------------------------------------------------
 # Win32 clipboard — only initialised on Windows

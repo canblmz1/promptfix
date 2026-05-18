@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 from dotenv import load_dotenv
@@ -85,7 +85,7 @@ def get_config_path() -> Path:
 def load_config() -> dict[str, Any]:
     path = get_config_path()
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             user_config = yaml.safe_load(f) or {}
         config = _deep_merge(DEFAULT_CONFIG, user_config)
     else:
@@ -94,8 +94,12 @@ def load_config() -> dict[str, Any]:
     return config
 
 
-_VALID_PROVIDERS = frozenset(DEFAULT_CONFIG["providers"].keys())
-_VALID_MODES = frozenset(DEFAULT_CONFIG["context"]["mode_limits"].keys())
+_VALID_PROVIDERS: frozenset[str] = frozenset(
+    cast(dict[str, Any], DEFAULT_CONFIG["providers"]).keys()
+)
+_VALID_MODES: frozenset[str] = frozenset(
+    cast(dict[str, Any], cast(dict[str, Any], DEFAULT_CONFIG["context"])["mode_limits"]).keys()
+)
 
 
 def _validate_config(config: dict[str, Any]) -> None:
@@ -135,8 +139,8 @@ def ensure_config() -> dict[str, Any]:
 
 def get_provider_config(config: dict[str, Any], provider_name: str | None = None) -> dict[str, Any]:
     name = provider_name or config.get("provider", "groq")
-    providers = config.get("providers", {})
-    return providers.get(name, {})
+    providers: dict[str, Any] = dict(config.get("providers", {}))
+    return dict(providers.get(name, {}))
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
